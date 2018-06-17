@@ -1,6 +1,7 @@
-﻿using System;
+﻿using ExchangeSharp;
+using System;
+using System.IO;
 using System.Linq;
-using ExchangeSharp;
 using System.Threading;
 
 namespace BitKiwi
@@ -17,6 +18,7 @@ namespace BitKiwi
         private static decimal floatPrice;//浮动价格
         private static decimal limitTargetAmount;//目标币止损位
         private static decimal limitBaseAmount;//基础币止损位
+        private static decimal deep;//基础币止损位
 
         static void Main(string[] args)
         {
@@ -38,6 +40,7 @@ namespace BitKiwi
             limitTargetAmount = 1m;
             limitBaseAmount = 1m;
             targetCurrency = "eos";
+            deep = 5;
 
             while (true)
             {
@@ -59,13 +62,13 @@ namespace BitKiwi
         {
             var depth = exchange.GetOrderBook(marketid, count);
             var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
-            var asks= depth.Asks.OrderBy(a => a.Value.Price);
+            var asks = depth.Asks.OrderBy(a => a.Value.Price);
             decimal amountBids = 0;
             decimal amountAsks = 0;
             //计算买价，获取累计深度达到预设的价格
             if (type == ExType.Buy)
             {
-                for (var i = 0; i < 20; i++)
+                for (var i = 0; i < deep; i++)
                 {
                     amountBids += bids.ElementAt(i).Value.Amount;
                     //floatamountbuy就是预设的累计买单深度
@@ -79,7 +82,7 @@ namespace BitKiwi
             //同理计算卖价
             if (type == ExType.Sell)
             {
-                for (var j = 0; j < 20; j++)
+                for (var j = 0; j < deep; j++)
                 {
                     amountAsks += asks.ElementAt(j).Value.Amount;
                     if (amountAsks > floatamountsell)
@@ -107,6 +110,7 @@ namespace BitKiwi
             //获取账户信息，确定目前账户存在多少钱和多少币
             var account = exchange.GetAmountsAvailableToTrade();
             Console.WriteLine($"{DateTime.Now}-base账户余额{account.TryGetValueOrDefault(baseCurrency, 0)}");
+            File.AppendAllTextAsync("C://Amountlog.txt", $"{DateTime.Now}-base账户余额{account.TryGetValueOrDefault(baseCurrency, 0)}\r\n");
             Console.WriteLine($"{DateTime.Now}-target账户余额{account.TryGetValueOrDefault(targetCurrency, 0)}");
             //可买的比特币量            
             var amountBuy = SelfMath.ToFixed((account.TryGetValueOrDefault(baseCurrency, 0) / buyPrice - 0.1m), 2);
