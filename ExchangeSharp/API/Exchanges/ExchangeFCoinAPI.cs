@@ -37,7 +37,7 @@ namespace ExchangeSharp.API.Exchanges
                 }
             }
         }
-        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload)
+        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
             if (CanMakeAuthenticatedRequest(payload))
             {
@@ -45,7 +45,7 @@ namespace ExchangeSharp.API.Exchanges
                 {
                     return url.Uri;
                 }
-                string method = payload["method"].ToStringInvariant();
+                method = payload["method"].ToStringInvariant();
                 payload.Remove("method");
                 var dict = new Dictionary<string, object>
                 {
