@@ -46,13 +46,25 @@ namespace ExchangeSharp
             return ExchangeSymbolToGlobalSymbolWithSeparator(symbol.Substring(0, symbol.Length - 3) + GlobalSymbolSeparator + symbol.Substring(symbol.Length - 3, 3), GlobalSymbolSeparator);
         }
 
+        protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
+        {
+            if (method != "PUT" && method != "POST" && payload != null && payload.Count != 0)
+            {
+                url.AppendPayloadToQuery(payload);
+            }
+            return url.Uri;
+        }
+
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
             // only authenticated requests write json, everything uses GET and url params
             if (CanMakeAuthenticatedRequest(payload))
             {
                 request.Headers["Authorization"] = CryptoUtility.BasicAuthenticationString(PublicApiKey.ToUnsecureString(), PrivateApiKey.ToUnsecureString());
-                await CryptoUtility.WritePayloadJsonToRequestAsync(request, payload);
+                if (request.Method == "POST")
+                {
+                    await CryptoUtility.WritePayloadJsonToRequestAsync(request, payload);
+                }
             }
         }
 
@@ -177,29 +189,8 @@ namespace ExchangeSharp
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
-            ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken obj = await MakeJsonRequestAsync<JToken>("/public/orderbook/" + symbol + "?limit=" + maxCount.ToStringInvariant());
-            if (obj != null && obj.HasValues)
-            {
-                foreach (JToken order in obj["ask"])
-                {
-                    if (orders.Asks.Count < maxCount)
-                    {
-                        var depth = new ExchangeOrderPrice { Price = order["price"].ConvertInvariant<decimal>(), Amount = order["size"].ConvertInvariant<decimal>() };
-                        orders.Asks[depth.Price] = depth;
-                    }
-                }
-
-                foreach (JToken order in obj["bid"])
-                {
-                    if (orders.Bids.Count < maxCount)
-                    {
-                        var depth = new ExchangeOrderPrice { Price = order["price"].ConvertInvariant<decimal>(), Amount = order["size"].ConvertInvariant<decimal>() };
-                        orders.Bids[depth.Price] = depth;
-                    }
-                }
-            }
-            return orders;
+            JToken token = await MakeJsonRequestAsync<JToken>("/public/orderbook/" + symbol + "?limit=" + maxCount.ToStringInvariant());
+            return ExchangeAPIExtensions.ParseOrderBookFromJTokenDictionaries(token, asks: "ask", bids: "bid", amount: "size", maxCount: maxCount);
         }
 
         protected override async Task OnGetHistoricalTradesAsync(Func<IEnumerable<ExchangeTrade>, bool> callback, string symbol, DateTime? startDate = null, DateTime? endDate = null)
@@ -368,7 +359,10 @@ namespace ExchangeSharp
             if (token != null)
             {
                 deposit.Address = token["address"].ToStringInvariant();
-                if (deposit.Address.StartsWith("bitcoincash:")) deposit.Address = deposit.Address.Replace("bitcoincash:", string.Empty);  // don't know why they do this for bitcoincash
+                if (deposit.Address.StartsWith("bitcoincash:"))
+                {
+                    deposit.Address = deposit.Address.Replace("bitcoincash:", string.Empty);  // don't know why they do this for bitcoincash
+                }
                 deposit.AddressTag = token["wallet"].ToStringInvariant();
             }
             return deposit;
@@ -470,8 +464,7 @@ namespace ExchangeSharp
             payload["currency"] = Symbol;
             payload["amount"] = Amount;
             JToken obj = MakeJsonRequest<JToken>("/account/transfer", null, payload);
-            if (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant())) return true;
-            else return false;
+            return (obj != null && obj.HasValues && !String.IsNullOrEmpty(obj["id"].ToStringInvariant()));
         }
 
         #endregion
@@ -513,11 +506,11 @@ namespace ExchangeSharp
             //[ { "id": 9535486, "clientOrderId": "f8dbaab336d44d5ba3ff578098a68454", "orderId": 816088377, "symbol": "ETHBTC", "side": "sell", "quantity": "0.061", "price": "0.045487", "fee": "0.000002775", "timestamp": "2017-05-17T12:32:57.848Z" }, 
             return new ExchangeOrderResult()
             {
-                OrderId = token["orderId"].ToStringInvariant(),          // here we're using OrderId. I have no idea what the id field is used for.
+                OrderId = token["orderId"].ToStringInvariant(),
                 Symbol = token["symbol"].ToStringInvariant(),
                 IsBuy = token["side"].ToStringInvariant().Equals("buy"),
                 Amount = token["quantity"].ConvertInvariant<decimal>(),
-                AmountFilled = token["quantity"].ConvertInvariant<decimal>(),   // these are closed, so I guess the filled quantity matches the order quantiity
+                AmountFilled = token["quantity"].ConvertInvariant<decimal>(), // these are closed, so I guess the filled quantity matches the order quantiity
                 Price = token["price"].ConvertInvariant<decimal>(),
                 Fees = token["fee"].ConvertInvariant<decimal>(),
                 OrderDate = ConvertDateTimeInvariant(token["timestamp"]),
