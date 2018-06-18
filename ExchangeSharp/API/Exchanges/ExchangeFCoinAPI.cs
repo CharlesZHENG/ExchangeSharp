@@ -12,6 +12,8 @@ namespace ExchangeSharp.API.Exchanges
     {
         public override string BaseUrl { get; set; } = "https://api.fcoin.com/v2/";
         public override string Name => ExchangeName.FCoin;
+        private string sig;
+        private string timestamp;
         public ExchangeFCoinAPI()
         {
             RequestContentType = "application/x-www-form-urlencoded";
@@ -26,11 +28,17 @@ namespace ExchangeSharp.API.Exchanges
         }
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
+            request.Headers = new WebHeaderCollection(){
+                {"FC-ACCESS-KEY", PublicApiKey.ToUnsecureString()},
+                {"FC-ACCESS-SIGNATURE", sig},
+                {"FC-ACCESS-TIMESTAMP",timestamp }
+            };
+
             if (CanMakeAuthenticatedRequest(payload))
             {
                 if (request.Method == "POST")
                 {
-                    request.ContentType = "application/json";
+                    //request.ContentType = "application/json";
                     payload.Remove("nonce");
                     var msg = CryptoUtility.GetJsonForPayload(payload);
                     await CryptoUtility.WriteToRequestAsync(request, msg);
@@ -39,6 +47,7 @@ namespace ExchangeSharp.API.Exchanges
         }
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
+            timestamp = DateTime.UtcNow.ToString("s");
             if (CanMakeAuthenticatedRequest(payload))
             {
                 if (!payload.ContainsKey("method"))
@@ -47,26 +56,16 @@ namespace ExchangeSharp.API.Exchanges
                 }
                 method = payload["method"].ToStringInvariant();
                 payload.Remove("method");
-                var dict = new Dictionary<string, object>
-                {
-                    ["Timestamp"] = DateTime.UtcNow.ToString("s"),
-                    ["AccessKeyId"] = PublicApiKey.ToUnsecureString(),
-                };
-                string msg = null;
-                if (method == "GET")
-                {
-                    dict = dict.Concat(payload).ToDictionary(x => x.Key, x => x.Value);
-                }
-                msg = CryptoUtility.GetFormForPayload(dict, false);
+                string msg = CryptoUtility.GetFormForPayload(payload, false);
                 msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
                 StringBuilder sb = new StringBuilder();
                 sb.Append(method).Append("\n")
                     .Append(url.Host).Append("\n")
                     .Append(url.Path).Append("\n")
+                    .Append(timestamp).Append("\n")
                     .Append(msg);
-                var sig = CryptoUtility.SHA1SignBase64(sb.ToString(), PrivateApiKey.ToBytes());
-                msg += "&Signature=" + Uri.EscapeDataString(sig);
-                url.Query = msg;
+                sig = CryptoUtility.SHA1SignBase64(sb.ToString(), PrivateApiKey.ToBytes());
+                url.Query = sb.ToString();
             }
             return url.Uri;
         }
@@ -79,7 +78,7 @@ namespace ExchangeSharp.API.Exchanges
             payload["method"] = "GET";
             payload.Add("symbol", symbol);
             //payload.Add("states", "pre-submitted,submitting,submitted,partial-filled");
-            JToken data = await MakeJsonRequestAsync<JToken>("/order/orders", BaseUrl, payload);
+            JToken data = await MakeJsonRequestAsync<JToken>("/orders", BaseUrl, payload);
             foreach (var prop in data)
             {
                 orders.Add(ParseOrder(prop));
