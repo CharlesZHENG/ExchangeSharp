@@ -3,12 +3,13 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using ExchangeSharp.API.Exchanges;
 
 namespace BitKiwi
 {
     class Program
     {
-        static IExchangeAPI exchange = new ExchangeHuobiAPI();
+        static IExchangeAPI exchange = new ExchangeFCoinAPI();//new ExchangeHuobiAPI();
         private static decimal floatamountbuy;//累计买单深度
         private static decimal floatamountsell;//累计卖单深度
         private static decimal diffprice;//买卖价差
