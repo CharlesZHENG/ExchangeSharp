@@ -1340,5 +1340,10 @@ namespace ExchangeSharp
         /// Yobit
         /// </summary>
         public const string Yobit = "Yobit";
+
+        /// <summary>
+        /// FCoin
+        /// </summary>
+        public const string FCoin = "FCoin";
     }
 }

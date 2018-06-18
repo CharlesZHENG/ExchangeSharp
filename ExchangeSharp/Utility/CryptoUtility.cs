@@ -550,16 +550,25 @@ namespace ExchangeSharp
         }
 
         /// <summary>
-        /// Sign a message with SHA256 hash
+        /// Sign a message with HMAC-SHA1 hash
         /// </summary>
         /// <param name="message">Message to sign</param>
         /// <param name="key">Private key bytes</param>
         /// <returns>Signature in base64</returns>
+        public static string SHA1SignBase64(string message, byte[] key)
+        {
+            return Convert.ToBase64String(new HMACSHA1(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)));
+        }
+        /// <summary>
+        /// Sign a message with SHA256 hash
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="key"></param>
+        /// <returns></returns>
         public static string SHA256SignBase64(string message, byte[] key)
         {
             return Convert.ToBase64String(new HMACSHA256(key).ComputeHash(utf8EncodingNoPrefix.GetBytes(message)));
         }
-
         /// <summary>
         /// Sign a message with SHA384 hash
         /// </summary>
