@@ -88,30 +88,29 @@ namespace ExchangeSharp.API.Exchanges
 
         protected override async Task<IEnumerable<ExchangeMarket>> OnGetSymbolsMetadataAsync()
         {
-//            {
-//                "status": 0,
-//                "data": [
-//                {
-//                    "name": "btcusdt",
-//                    "base_currency": "btc",
-//                    "quote_currency": "usdt",
-//                    "price_decimal": 2,
-//                    "amount_decimal": 4
-//                },
-//                {
-//                    "name": "ethusdt",
-//                    "base_currency": "eth",
-//                    "quote_currency": "usdt",
-//                    "price_decimal": 2,
-//                    "amount_decimal": 4
-//                }
-//                ]
-//            }
+            //            {
+            //                "status": 0,
+            //                "data": [
+            //                {
+            //                    "name": "btcusdt",
+            //                    "base_currency": "btc",
+            //                    "quote_currency": "usdt",
+            //                    "price_decimal": 2,
+            //                    "amount_decimal": 4
+            //                },
+            //                {
+            //                    "name": "ethusdt",
+            //                    "base_currency": "eth",
+            //                    "quote_currency": "usdt",
+            //                    "price_decimal": 2,
+            //                    "amount_decimal": 4
+            //                }
+            //                ]
+            //            }
             if (ReadCache("GetSymbolsMetadata", out List<ExchangeMarket> markets))
             {
                 return markets;
             }
-
             markets = new List<ExchangeMarket>();
             JToken allSymbols = await MakeJsonRequestAsync<JToken>("public/symbols", BaseUrl, null);
             foreach (var symbol in allSymbols)
@@ -146,18 +145,20 @@ namespace ExchangeSharp.API.Exchanges
 
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAsync()
         {
-//            {
-//                "status": 0,
-//                "data": [
-//                {
-//                    "currency": "btc",
-//                    "available": "50.0",
-//                    "frozen": "50.0",
-//                    "balance": "100.0"
-//                }
-//                ]
-//            }
+            //            {
+            //                "status": 0,
+            //                "data": [
+            //                {
+            //                    "currency": "btc",
+            //                    "available": "50.0",
+            //                    "frozen": "50.0",
+            //                    "balance": "100.0"
+            //                }
+            //                ]
+            //            }
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            var ts = MakeJsonRequestAsync<JToken>("public/server-time", BaseUrl, null).GetAwaiter().GetResult();
+            timestamp = ts.ToStringInvariant();
             JToken token = await MakeJsonRequestAsync<JToken>($"accounts/balance", BaseUrl, null);
             var list = token["data"];
             foreach (var item in list)
@@ -184,6 +185,8 @@ namespace ExchangeSharp.API.Exchanges
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            var ts = MakeJsonRequestAsync<JToken>("public/server-time", BaseUrl, null).GetAwaiter().GetResult();
+            timestamp = ts.ToStringInvariant();
             JToken token = await MakeJsonRequestAsync<JToken>($"accounts/balance", BaseUrl);
             var list = token["data"];
             foreach (var item in list)
@@ -215,26 +218,62 @@ namespace ExchangeSharp.API.Exchanges
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
+            /*
+             {
+  "type": "depth.L20.ethbtc",
+  "ts": 1523619211000,
+  "seq": 120,
+  "bids": [0.000100000, 1.000000000, 0.000010000, 1.000000000],
+  "asks": [1.000000000, 1.000000000]
+}
+             */
             string level = maxCount == 20 ? "L20" : maxCount == 100 ? "L100" : "full";
             symbol = NormalizeSymbol(symbol);
             ExchangeOrderBook orders = new ExchangeOrderBook();
             JToken obj = await MakeJsonRequestAsync<JToken>($"market/depth/{level}/{symbol}", BaseUrl, null);
-            return ExchangeAPIExtensions.ParseOrderBookFromJTokenArrays(obj["tick"], sequence: "ts",
+            return ParseOrderBookFromJToken(obj, sequence: "ts",
                 maxCount: maxCount);
+        }
+
+        private ExchangeOrderBook ParseOrderBookFromJToken(JToken token, string asks = "asks", string bids = "bids", string price = "price", string amount = "amount", string sequence = "ts", int maxCount = 100)
+        {
+            ExchangeOrderBook book = new ExchangeOrderBook
+            {
+                SequenceId = token[sequence].ConvertInvariant<long>()
+            };
+            for (int i = 0; i < token[asks].Count() - 1; i++)
+            {
+                var depth = new ExchangeOrderPrice { Price = token[asks][i].ConvertInvariant<decimal>(), Amount = token[asks][i + 1].ConvertInvariant<decimal>() };
+                book.Asks[depth.Price] = depth;
+                if (book.Asks.Count == maxCount)
+                {
+                    break;
+                }
+            }
+            for (int i = 0; i < token[bids].Count() - 1; i++)
+            {
+                var depth = new ExchangeOrderPrice { Price = token[bids][i].ConvertInvariant<decimal>(), Amount = token[bids][i + 1].ConvertInvariant<decimal>() };
+                book.Bids[depth.Price] = depth;
+                if (book.Asks.Count == maxCount)
+                {
+                    break;
+                }
+            }
+            return book;
         }
 
         //下单
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
             Dictionary<string, object> payload = new Dictionary<string, object>();
-            payload.Add("amount	",order.Amount.ToString());
-            payload.Add("method	","POST");
-            payload.Add("price",order.Price.ToString());
-            payload.Add("side",order.IsBuy?"bug":"sell");
-            payload.Add("symbol",NormalizeSymbol(order.Symbol));
-            payload.Add("type",order.OrderType.ToString());
-            JToken obj= await MakeJsonRequestAsync<JToken>($"orders", BaseUrl, payload, "POST");
-            ExchangeOrderResult result=new ExchangeOrderResult()
+            payload.Add("amount	", order.Amount.ToString());
+            payload.Add("method	", "POST");
+            payload.Add("price", order.Price.ToString());
+            payload.Add("side", order.IsBuy ? "bug" : "sell");
+            payload.Add("symbol", NormalizeSymbol(order.Symbol));
+            payload.Add("type", order.OrderType.ToString());
+            JToken obj = await MakeJsonRequestAsync<JToken>($"orders", BaseUrl, payload, "POST");
+            ExchangeOrderResult result = new ExchangeOrderResult()
             {
                 Amount = order.Amount,
                 Price = order.Price,
@@ -248,7 +287,7 @@ namespace ExchangeSharp.API.Exchanges
             return result;
         }
 
-//*************End**********
+        //*************End**********
 
         protected override async Task<IEnumerable<ExchangeOrderResult>> OnGetOpenOrderDetailsAsync(string symbol = null)
         {
