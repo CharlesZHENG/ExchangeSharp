@@ -55,6 +55,10 @@ namespace ExchangeSharp.API.Exchanges
                 msg = CryptoUtility.GetJsonForPayload(payload);
                 await CryptoUtility.WriteToRequestAsync(request, msg);
             }
+            else
+            {
+                request.ContentType = "application/x-www-form-urlencoded;charset=utf-8";
+            }
         }
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
@@ -184,7 +188,8 @@ namespace ExchangeSharp.API.Exchanges
             }*/
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = await OnGetNoncePayloadAsync();
-            JToken token = await MakeJsonRequestAsync<JToken>($"accounts/balance", BaseUrl, payload);
+            payload["method"] = "GET";
+            JToken token = await MakeJsonRequestAsync<JToken>($"accounts/balance", BaseUrl, payload,"GET");
             foreach (var item in token)
             {
                 var balance = item["available"].ConvertInvariant<decimal>();
@@ -223,8 +228,9 @@ namespace ExchangeSharp.API.Exchanges
              */
             string level = maxCount == 20 ? "L20" : maxCount == 100 ? "L100" : "full";
             symbol = NormalizeSymbol(symbol);
-            ExchangeOrderBook orders = new ExchangeOrderBook();
-            JToken obj = await MakeJsonRequestAsync<JToken>($"market/depth/{level}/{symbol}", BaseUrl, null);
+            var payload = await OnGetNoncePayloadAsync();
+            payload["method"] = "GET";
+            JToken obj = await MakeJsonRequestAsync<JToken>($"market/depth/{level}/{symbol}", BaseUrl, payload,"GET");
             return ParseOrderBookFromJToken(obj, sequence: "ts",
                 maxCount: maxCount);
         }
@@ -268,7 +274,7 @@ namespace ExchangeSharp.API.Exchanges
             RequestMethod = "POST";
             payload.Add("amount", order.Amount.ToString());
             payload.Add("method", "POST");
-            payload.Add("price", SelfMath.ToFixed(order.Price,4).ToString());
+            payload.Add("price", SelfMath.ToFixed(order.Price, 4).ToString());
             payload.Add("side", order.IsBuy ? "buy" : "sell");
             payload.Add("symbol", NormalizeSymbol(order.Symbol));
             payload.Add("type", order.OrderType.ToString().ToLower());
@@ -304,7 +310,7 @@ namespace ExchangeSharp.API.Exchanges
             //payload.Add("after", "0");
             //payload.Add("limit", "10");
 
-            JToken data = await MakeJsonRequestAsync<JToken>("/orders", BaseUrl, payload);
+            JToken data = await MakeJsonRequestAsync<JToken>("/orders", BaseUrl, payload,"GET");
             foreach (var prop in data)
             {
                 orders.Add(ParseOrder(prop));
