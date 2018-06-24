@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using ExchangeSharp.Utility;
 using Newtonsoft.Json.Linq;
 
 namespace ExchangeSharp.API.Exchanges
 {
     public sealed class ExchangeFCoinAPI : ExchangeAPI
     {
-        public override string BaseUrl { get; set; } = "https://api.fcoin.com/v2/";
+
+        public override string BaseUrl { get; set; } = "https://api.fcoin.com/v2";
         public override string Name => ExchangeName.FCoin;
-        private string sig;
-        private string timestamp;
 
         public ExchangeFCoinAPI()
         {
@@ -32,6 +33,15 @@ namespace ExchangeSharp.API.Exchanges
 
         protected override async Task ProcessRequestAsync(HttpWebRequest request, Dictionary<string, object> payload)
         {
+            var timestamp = TimeHelper.GetTotalMilliseconds().ToString();
+            payload?.Remove("method");
+            payload?.Remove("nonce");
+            string msg = CryptoUtility.GetFormForPayload(payload, false);
+            msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
+            //var msg = payload?.Count > 0 ? string.Join("&", new SortedSet<string>(payload.Select(a => $"{a.Key}={a.Value}").ToList())) : "";
+            string signStr = (request.Method == "GET") ? $"{request.Method}{request.Address}{timestamp}" : $"{request.Method}{request.Address.AbsoluteUri}{timestamp}{msg}";
+            Debug.WriteLine(signStr);
+            var sig = CryptoUtility.SHA1SignBase64(signStr, PrivateApiKey.ToBytes());
             request.Headers = new WebHeaderCollection()
             {
                 {"FC-ACCESS-KEY", PublicApiKey.ToUnsecureString()},
@@ -39,42 +49,21 @@ namespace ExchangeSharp.API.Exchanges
                 {"FC-ACCESS-TIMESTAMP", timestamp}
             };
 
-            if (CanMakeAuthenticatedRequest(payload))
+            if (request.Method == "POST")
             {
-                if (request.Method == "POST")
-                {
-                    //request.ContentType = "application/json";
-                    payload.Remove("nonce");
-                    var msg = CryptoUtility.GetJsonForPayload(payload);
-                    await CryptoUtility.WriteToRequestAsync(request, msg);
-                }
+                request.ContentType = "application/json";
+                msg = CryptoUtility.GetJsonForPayload(payload);
+                await CryptoUtility.WriteToRequestAsync(request, msg);
             }
         }
-
         protected override Uri ProcessRequestUrl(UriBuilder url, Dictionary<string, object> payload, string method)
         {
-            timestamp = DateTime.UtcNow.ToString("s");
-            if (CanMakeAuthenticatedRequest(payload))
+            if (method == "GET")
             {
-                if (!payload.ContainsKey("method"))
-                {
-                    return url.Uri;
-                }
-
-                method = payload["method"].ToStringInvariant();
-                payload.Remove("method");
+                payload?.Remove("method");
                 string msg = CryptoUtility.GetFormForPayload(payload, false);
-                msg = string.Join("&", new SortedSet<string>(msg.Split('&'), StringComparer.Ordinal));
-                StringBuilder sb = new StringBuilder();
-                sb.Append(method).Append("\n")
-                    .Append(url.Host).Append("\n")
-                    .Append(url.Path).Append("\n")
-                    .Append(timestamp).Append("\n")
-                    .Append(msg);
-                sig = CryptoUtility.SHA1SignBase64(sb.ToString(), PrivateApiKey.ToBytes());
-                url.Query = sb.ToString();
+                url.Query = msg;
             }
-
             return url.Uri;
         }
 
@@ -157,11 +146,10 @@ namespace ExchangeSharp.API.Exchanges
             //                ]
             //            }
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var ts = MakeJsonRequestAsync<JToken>("public/server-time", BaseUrl, null).GetAwaiter().GetResult();
-            timestamp = ts.ToStringInvariant();
+            //var ts = MakeJsonRequestAsync<JToken>("public/server-time", BaseUrl, null).GetAwaiter().GetResult();
+            //timestamp = ts.ToStringInvariant();
             JToken token = await MakeJsonRequestAsync<JToken>($"accounts/balance", BaseUrl, null);
-            var list = token["data"];
-            foreach (var item in list)
+            foreach (var item in token)
             {
                 var balance = item["balance"].ConvertInvariant<decimal>();
                 if (balance == 0m)
@@ -178,23 +166,31 @@ namespace ExchangeSharp.API.Exchanges
                     amounts[currency] = balance;
                 }
             }
-
             return amounts;
         }
-
         protected override async Task<Dictionary<string, decimal>> OnGetAmountsAvailableToTradeAsync()
         {
-            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
-            var ts = MakeJsonRequestAsync<JToken>("public/server-time", BaseUrl, null).GetAwaiter().GetResult();
-            timestamp = ts.ToStringInvariant();
-            JToken token = await MakeJsonRequestAsync<JToken>($"accounts/balance", BaseUrl);
-            var list = token["data"];
-            foreach (var item in list)
+            /*
             {
-                var balance = item["balance"].ConvertInvariant<decimal>();
+                "status": 0,
+                "data": [
+                {
+                    "currency": "btc",
+                    "available": "50.0",
+                    "frozen": "50.0",
+                    "balance": "100.0"
+                }
+                ]
+            }*/
+            Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
+            var payload = await OnGetNoncePayloadAsync();
+            JToken token = await MakeJsonRequestAsync<JToken>($"accounts/balance", BaseUrl, payload);
+            foreach (var item in token)
+            {
+                var balance = item["available"].ConvertInvariant<decimal>();
                 if (balance == 0m)
                     continue;
-                var currency = item["available"].ToStringInvariant();
+                var currency = item["currency"].ToStringInvariant();
 
                 if (amounts.ContainsKey(currency))
                 {
@@ -205,10 +201,8 @@ namespace ExchangeSharp.API.Exchanges
                     amounts[currency] = balance;
                 }
             }
-
             return amounts;
         }
-
         protected override async Task OnCancelOrderAsync(string orderId, string symbol = null)
         {
             var payload = await OnGetNoncePayloadAsync();
@@ -265,25 +259,30 @@ namespace ExchangeSharp.API.Exchanges
         //下单
         protected override async Task<ExchangeOrderResult> OnPlaceOrderAsync(ExchangeOrderRequest order)
         {
+            /*
+            {
+                "status": 0,
+                "data": "9d17a03b852e48c0b3920c7412867623"
+            }*/
             Dictionary<string, object> payload = new Dictionary<string, object>();
-            payload.Add("amount	", order.Amount.ToString());
-            payload.Add("method	", "POST");
-            payload.Add("price", order.Price.ToString());
-            payload.Add("side", order.IsBuy ? "bug" : "sell");
+            RequestMethod = "POST";
+            payload.Add("amount", order.Amount.ToString());
+            payload.Add("method", "POST");
+            payload.Add("price", SelfMath.ToFixed(order.Price,4).ToString());
+            payload.Add("side", order.IsBuy ? "buy" : "sell");
             payload.Add("symbol", NormalizeSymbol(order.Symbol));
-            payload.Add("type", order.OrderType.ToString());
+            payload.Add("type", order.OrderType.ToString().ToLower());
             JToken obj = await MakeJsonRequestAsync<JToken>($"orders", BaseUrl, payload, "POST");
             ExchangeOrderResult result = new ExchangeOrderResult()
             {
                 Amount = order.Amount,
                 Price = order.Price,
                 IsBuy = order.IsBuy,
-                OrderId = obj["data"].ToStringInvariant(),
+                OrderId = obj.ToStringInvariant(),
                 Symbol = order.Symbol
             };
             result.AveragePrice = result.Price;
             result.Result = ExchangeAPIOrderResult.Pending;
-
             return result;
         }
 
@@ -300,7 +299,11 @@ namespace ExchangeSharp.API.Exchanges
             var payload = await OnGetNoncePayloadAsync();
             payload["method"] = "GET";
             payload.Add("symbol", symbol);
-            //payload.Add("states", "pre-submitted,submitting,submitted,partial-filled");
+            payload.Add("states", "submitted");
+            //payload.Add("before", "submitted");
+            //payload.Add("after", "0");
+            //payload.Add("limit", "10");
+
             JToken data = await MakeJsonRequestAsync<JToken>("/orders", BaseUrl, payload);
             foreach (var prop in data)
             {
@@ -312,16 +315,36 @@ namespace ExchangeSharp.API.Exchanges
 
         private ExchangeOrderResult ParseOrder(JToken token)
         {
+            /*
+            {
+                "status": 0,
+                "data": [
+                {
+                    "id": "string",
+                    "symbol": "string",
+                    "type": "limit",
+                    "side": "buy",
+                    "price": "string",
+                    "amount": "string",
+                    "state": "submitted",
+                    "executed_value": "string",
+                    "fill_fees": "string",
+                    "filled_amount": "string",
+                    "created_at": 0,
+                    "source": "web"
+                }
+                ]
+            }*/
             ExchangeOrderResult result = new ExchangeOrderResult()
             {
-                //OrderId = token["id"].ToStringInvariant(),
-                //Symbol = token["symbol"].ToStringInvariant(),
-                //Amount = token["amount"].ConvertInvariant<decimal>(),
-                //AmountFilled = token["field-amount"].ConvertInvariant<decimal>(),
-                //Price = token["price"].ConvertInvariant<decimal>(),
-                //OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["created-at"].ConvertInvariant<long>()),
-                //IsBuy = token["type"].ToStringInvariant().StartsWith("buy"),
-                //Result = ParseState(token["state"].ToStringInvariant()),
+                OrderId = token["id"].ToStringInvariant(),
+                Symbol = token["symbol"].ToStringInvariant(),
+                Amount = token["amount"].ConvertInvariant<decimal>(),
+                AmountFilled = token["field-amount"].ConvertInvariant<decimal>(),
+                Price = token["price"].ConvertInvariant<decimal>(),
+                OrderDate = CryptoUtility.UnixTimeStampToDateTimeMilliseconds(token["created-at"].ConvertInvariant<long>()).ToLocalTime(),
+                IsBuy = token["type"].ToStringInvariant().StartsWith("buy"),
+                Result = ParseState(token["state"].ToStringInvariant()),
             };
             return result;
         }
@@ -330,17 +353,16 @@ namespace ExchangeSharp.API.Exchanges
         {
             switch (state)
             {
-                //case "pre-submitted":
-                //case "submitting":
-                //case "submitted":
-                //    return ExchangeAPIOrderResult.Pending;
-                //case "partial-filled":
-                //    return ExchangeAPIOrderResult.FilledPartially;
-                //case "filled":
-                //    return ExchangeAPIOrderResult.Filled;
-                //case "partial-canceled":
-                //case "canceled":
-                //    return ExchangeAPIOrderResult.Canceled;
+                case "submitted":
+                    return ExchangeAPIOrderResult.Pending;
+                case "partial-filled":
+                    return ExchangeAPIOrderResult.FilledPartially;
+                case "filled":
+                    return ExchangeAPIOrderResult.Filled;
+                case "partial-canceled":
+                case "canceled":
+                case "pending_cancel":
+                    return ExchangeAPIOrderResult.Canceled;
                 default:
                     return ExchangeAPIOrderResult.Unknown;
             }
