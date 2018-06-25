@@ -189,7 +189,7 @@ namespace ExchangeSharp.API.Exchanges
             Dictionary<string, decimal> amounts = new Dictionary<string, decimal>();
             var payload = await OnGetNoncePayloadAsync();
             payload["method"] = "GET";
-            JToken token = await MakeJsonRequestAsync<JToken>($"accounts/balance", BaseUrl, payload,"GET");
+            JToken token = await MakeJsonRequestAsync<JToken>($"accounts/balance", BaseUrl, payload, "GET");
             foreach (var item in token)
             {
                 var balance = item["available"].ConvertInvariant<decimal>();
@@ -230,7 +230,7 @@ namespace ExchangeSharp.API.Exchanges
             symbol = NormalizeSymbol(symbol);
             var payload = await OnGetNoncePayloadAsync();
             payload["method"] = "GET";
-            JToken obj = await MakeJsonRequestAsync<JToken>($"market/depth/{level}/{symbol}", BaseUrl, payload,"GET");
+            JToken obj = await MakeJsonRequestAsync<JToken>($"market/depth/{level}/{symbol}", BaseUrl, payload, "GET");
             return ParseOrderBookFromJToken(obj, sequence: "ts",
                 maxCount: maxCount);
         }
@@ -241,7 +241,7 @@ namespace ExchangeSharp.API.Exchanges
             {
                 SequenceId = token[sequence].ConvertInvariant<long>()
             };
-            for (int i = 0; i < token[asks].Count() - 1; i++)
+            for (int i = 0; i < token[asks].Count() - 1; i = i + 2)
             {
                 var depth = new ExchangeOrderPrice { Price = token[asks][i].ConvertInvariant<decimal>(), Amount = token[asks][i + 1].ConvertInvariant<decimal>() };
                 book.Asks[depth.Price] = depth;
@@ -250,7 +250,7 @@ namespace ExchangeSharp.API.Exchanges
                     break;
                 }
             }
-            for (int i = 0; i < token[bids].Count() - 1; i++)
+            for (int i = 0; i < token[bids].Count() - 1; i = i + 2)
             {
                 var depth = new ExchangeOrderPrice { Price = token[bids][i].ConvertInvariant<decimal>(), Amount = token[bids][i + 1].ConvertInvariant<decimal>() };
                 book.Bids[depth.Price] = depth;
@@ -310,7 +310,7 @@ namespace ExchangeSharp.API.Exchanges
             //payload.Add("after", "0");
             //payload.Add("limit", "10");
 
-            JToken data = await MakeJsonRequestAsync<JToken>("/orders", BaseUrl, payload,"GET");
+            JToken data = await MakeJsonRequestAsync<JToken>("/orders", BaseUrl, payload, "GET");
             foreach (var prop in data)
             {
                 orders.Add(ParseOrder(prop));
