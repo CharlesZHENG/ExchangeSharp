@@ -63,9 +63,9 @@
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(57, 114);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(29, 12);
+            this.label2.Size = new System.Drawing.Size(53, 12);
             this.label2.TabIndex = 3;
-            this.label2.Text = "货币";
+            this.label2.Text = "目标币种";
             // 
             // TxtTargetCoin
             // 
@@ -79,9 +79,9 @@
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(57, 153);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(29, 12);
+            this.label3.Size = new System.Drawing.Size(41, 12);
             this.label3.TabIndex = 5;
-            this.label3.Text = "现价";
+            this.label3.Text = "基币种";
             // 
             // TxtBaseCoin
             // 
@@ -174,6 +174,7 @@
             // 
             this.Box.FormattingEnabled = true;
             this.Box.Items.AddRange(new object[] {
+            "火币",
             "币安",
             "FCoin"});
             this.Box.Location = new System.Drawing.Point(143, 70);

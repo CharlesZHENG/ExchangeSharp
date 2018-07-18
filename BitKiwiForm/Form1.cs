@@ -108,6 +108,9 @@ namespace BitKiwiForm
                     exchange = new ExchangeFCoinAPI();
                     exchange.LoadAPIKeysUnsecure("0d30c4db02ef48009a61e8b179454d49", "e6585930d35640cd98eb6ddfa6de4e44");
                     break;
+                case "火币":
+                    exchange=new ExchangeHuobiAPI();
+                    break;
             }
         }
 
@@ -131,6 +134,7 @@ namespace BitKiwiForm
             var order = new ExchangeOrderRequest();
             if (isBuy)
             {
+                //优化
                 order.Amount = amountTx * decimal.Parse(TxtHold.Text.Trim()) / 100;
                 order.IsBuy = isBuy;
                 order.Price = txPrice;
