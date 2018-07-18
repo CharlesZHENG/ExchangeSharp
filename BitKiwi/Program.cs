@@ -4,12 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using ExchangeSharp.API.Exchanges;
+using Newtonsoft.Json;
 
 namespace BitKiwi
 {
     class Program
     {
-        static IExchangeAPI exchange = new ExchangeFCoinAPI();//new ExchangeHuobiAPI();
+        static ExchangeFCoinAPI exchange = new ExchangeFCoinAPI();//new ExchangeHuobiAPI();
         private static decimal floatamountbuy;//累计买单深度
         private static decimal floatamountsell;//累计卖单深度
         private static decimal diffprice;//买卖价差
@@ -23,6 +24,7 @@ namespace BitKiwi
 
         static void Main(string[] args)
         {
+            exchange.LoadAPIKeysUnsecure("0d30c4db02ef48009a61e8b179454d49", "e6585930d35640cd98eb6ddfa6de4e44");
             //floatamountbuy = 2m;
             //floatamountsell = 2m;
             //diffprice = 0.0001m;//0.1%
@@ -37,17 +39,19 @@ namespace BitKiwi
             diffprice = 0.00001m;//
             floatPrice = 0.00001m;
             sleeptime = 5;
-            baseCurrency = "ht";
+            baseCurrency = "usdt";
             limitTargetAmount = 1m;
             limitBaseAmount = 1m;
-            targetCurrency = "eos";
+            targetCurrency = "xrp";
             deep = 5;
-
-            while (true)
-            {
-                Console.WriteLine($"{DateTime.Now}-开始:");
-                OnTick(targetCurrency);
-            }
+            var a = exchange.GetFilledOrdersAsync("xrpusdt",20).GetAwaiter().GetResult();
+            Console.WriteLine(JsonConvert.SerializeObject(a));
+            Console.Read();
+            //while (true)
+            //{
+            //    Console.WriteLine($"{DateTime.Now}-开始:");
+            //    OnTick(targetCurrency);
+            //}
         }
         static void CancelPendingOrders(string marketId)
         {

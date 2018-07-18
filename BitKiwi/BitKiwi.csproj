@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BitKiwi.Lib\BitKiwi.Lib.csproj" />
     <ProjectReference Include="..\ExchangeSharp\ExchangeSharp.csproj" />
   </ItemGroup>
 

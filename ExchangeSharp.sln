@@ -20,7 +20,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExchangeSharpTests", "ExchangeSharpTests\ExchangeSharpTests.csproj", "{85BBD19C-5702-4394-BD7C-CE08309F6F49}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitKiwi", "BitKiwi\BitKiwi.csproj", "{DE03A79B-57C4-430F-A320-884BC72FEB54}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BitKiwi", "BitKiwi\BitKiwi.csproj", "{DE03A79B-57C4-430F-A320-884BC72FEB54}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitKiwiForm", "BitKiwiForm\BitKiwiForm.csproj", "{BB980B35-3C0B-4EA4-BB50-0F5092BF1488}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitKiwi.Lib", "BitKiwi.Lib\BitKiwi.Lib.csproj", "{FA70D749-E0BE-41FD-B699-92F1CD7A07CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +48,14 @@ Global
 		{DE03A79B-57C4-430F-A320-884BC72FEB54}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DE03A79B-57C4-430F-A320-884BC72FEB54}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DE03A79B-57C4-430F-A320-884BC72FEB54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB980B35-3C0B-4EA4-BB50-0F5092BF1488}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB980B35-3C0B-4EA4-BB50-0F5092BF1488}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB980B35-3C0B-4EA4-BB50-0F5092BF1488}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB980B35-3C0B-4EA4-BB50-0F5092BF1488}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA70D749-E0BE-41FD-B699-92F1CD7A07CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA70D749-E0BE-41FD-B699-92F1CD7A07CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA70D749-E0BE-41FD-B699-92F1CD7A07CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA70D749-E0BE-41FD-B699-92F1CD7A07CC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

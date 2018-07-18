@@ -214,6 +214,26 @@ namespace ExchangeSharp.API.Exchanges
             payload["method"] = "POST";
             await MakeJsonRequestAsync<JToken>($"orders/{orderId}/submit-cancel", BaseUrl, payload, "POST");
         }
+        public async Task<ExchangeOrderBook> GetFilledOrdersAsync(string symbol, int maxCount = 100)
+        {
+            /*
+         {
+"type": "depth.L20.ethbtc",
+"ts": 1523619211000,
+"seq": 120,
+"bids": [0.000100000, 1.000000000, 0.000010000, 1.000000000],
+"asks": [1.000000000, 1.000000000]
+}
+         */
+            string level = maxCount == 20 ? "L20" : maxCount == 100 ? "L100" : "full";
+            symbol = NormalizeSymbol(symbol);
+            var payload = await OnGetNoncePayloadAsync();
+            payload["method"] = "GET";
+            payload["states"] = "filled";
+            JToken obj = await MakeJsonRequestAsync<JToken>($"market/depth/{level}/{symbol}", BaseUrl, payload, "GET");
+            return ParseOrderBookFromJToken(obj, sequence: "ts",
+                maxCount: maxCount);
+        }
 
         protected override async Task<ExchangeOrderBook> OnGetOrderBookAsync(string symbol, int maxCount = 100)
         {
