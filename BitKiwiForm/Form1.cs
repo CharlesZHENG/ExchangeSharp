@@ -4,6 +4,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -15,78 +16,51 @@ namespace BitKiwiForm
 {
     public partial class Form1 : Form
     {
-        static IExchangeAPI exchange = new ExchangeBinanceAPI();
+
         private decimal floatamountbuy;//累计买单深度
         private decimal floatamountsell;//累计卖单深度
         private decimal diffprice;//买卖价差
-        private int sleeptime;//睡眠时间
-        private string baseCurrency;//基币种
-        private string marketid;
-        private string targetCurrency;
-        private decimal holdPrice;
-        private bool isStop;
+        private int sleeptime = 3000;//睡眠时间
+        private List<Input> inputList = new List<Input>();
+
         public Form1()
         {
             InitializeComponent();
         }
-
         private void Form1_Load(object sender, EventArgs e)
         {
-            Box.SelectedItem = Box.Items[0];
-        }
-
-        public class InputValidator : AbstractValidator<Input>
-        {
-            public InputValidator()
+            for (int i = 0; i < Controls.Count; i++)
             {
-                RuleFor(i => i.BaseCurrency).NotNull().NotEmpty();
-                RuleFor(i => i.Hold).Must(IsNumeric);
-                RuleFor(i => i.LossPoint).Must(IsNumeric);
-                RuleFor(i => i.RangePriceMin).Must(IsNumeric);
-                RuleFor(i => i.RangePriceMax).Must(IsNumeric);
-                RuleFor(i => i.RangeTimeMax).Must(IsNumeric);
-                RuleFor(i => i.RangeTimeMin).Must(IsNumeric);
-                RuleFor(i => i.TargetCurrency).NotNull().NotEmpty();
+                if (Controls[i] is ComboBox item)
+                {
+                    item.SelectedItem = item.Items[0];
+                }
             }
-            public bool IsNumeric(string value)
-            {
-                return (!string.IsNullOrEmpty(value)) && Regex.IsMatch(value, @"^[+-]?\d*[.]?\d*$");
-            }
+            this.BoxHold.SelectedItem = this.BoxHold.Items[1];
         }
 
         private void BtnSet_Click(object sender, EventArgs e)
         {
             var input = new Input()
             {
-                BaseCurrency = TxtBaseCoin.Text,
-                Hold = TxtHold.Text,
-                LossPoint = TxtHold.Text,
-                RangePriceMin = TxtRangeMin.Text,
-                RangePriceMax = TxtRangeMax.Text,
-                RangeTimeMin = TxtTimeMin.Text,
-                RangeTimeMax = TxtTimeMax.Text,
-                TargetCurrency = TxtTargetCoin.Text,
-                WebSite = Box.SelectedText
+                BaseCurrency = BoxBaseCoin.SelectedItem.ToString().ToLower(),
+                Hold = BoxHold.SelectedItem.ToString(),
+                LossPoint = BoxLossPoint.SelectedItem.ToString(),
+                RangePriceMin = BoxRangePrice.SelectedItem.ToString(),
+                RangePriceMax = "1.2",
+                RangeTimeMin = BoxRangeTime.SelectedItem.ToString(),
+                //RangeTimeMax = TxtTimeMax.Text,
+                TargetCurrency = TxtTargetCoin.Text.ToLower(),
+                WebSite = Box.SelectedItem.ToString(),
+                Status = InputStatus.None,
+                InitalTime = DateTime.Now
             };
             var validator = new InputValidator();
             ValidationResult results = validator.Validate(input);
-
             if (results.IsValid)
             {
-                InitExchange();
-                targetCurrency = TxtTargetCoin.Text.Trim();
-                baseCurrency = TxtBaseCoin.Text.Trim();
-                marketid = $"{targetCurrency}{baseCurrency}";
-                Task.Run(() =>
-                {
-                    DoBuy(true);
-                    while (true)
-                    {
-                        Console.WriteLine($"{DateTime.Now}-开始:");
-                        OnTick(targetCurrency);
-                        if (isStop) break;
-                    }
-                });
+                input.ExchangeApi = InitExchange(input);
+                inputList.Add(input);
             }
             else
             {
@@ -95,68 +69,105 @@ namespace BitKiwiForm
             }
         }
 
-        private void InitExchange()
+        private IExchangeAPI InitExchange(Input input)
         {
-            var ex = Box.SelectedItem.ToString();
-            switch (ex)
+            IExchangeAPI exchange;
+            switch (input.WebSite)
             {
                 case "币安":
                     exchange = new ExchangeBinanceAPI();
-
-                    break;
+                    return exchange;
                 case "FCoin":
                     exchange = new ExchangeFCoinAPI();
-                    exchange.LoadAPIKeysUnsecure("0d30c4db02ef48009a61e8b179454d49", "e6585930d35640cd98eb6ddfa6de4e44");
-                    break;
+                    return exchange;
                 case "火币":
-                    exchange=new ExchangeHuobiAPI();
-                    break;
+                    exchange = new ExchangeHuobiAPI();
+                    return exchange;
+                default:
+                    return null;
             }
         }
-
-        public void OnTick(string currency)
+        private Task DoBuy(bool isBuy, Input input)
         {
-            //Console.WriteLine($"{DateTime.Now}-卖单 数量:{amountSell}-价格:{sellPrice}");
-            DoBuy(false);
-            //休眠，进入下一轮循环
-            Thread.Sleep(sleeptime);
-        }
-
-        private void DoBuy(bool isBuy)
-        {
-            var depth = exchange.GetOrderBook(marketid, 10);
-            var price = isBuy ? depth.Asks.OrderBy(a => a.Value.Price).FirstOrDefault() : depth.Bids.OrderByDescending(a => a.Value.Price).FirstOrDefault();
-            var txPrice = price.Value.Price;
-            //获取账户信息，确定目前账户存在多少钱和多少币
-            var account = exchange.GetAmountsAvailableToTrade();
-            //可买的比特币量            
-            var amountTx = SelfMath.ToFixed((account.TryGetValueOrDefault((isBuy ? baseCurrency : targetCurrency), 0) / txPrice), 2);
-            var order = new ExchangeOrderRequest();
-            if (isBuy)
+            try
             {
-                //优化
-                order.Amount = amountTx * decimal.Parse(TxtHold.Text.Trim()) / 100;
-                order.IsBuy = isBuy;
-                order.Price = txPrice;
-                order.Symbol = marketid;
-                exchange.PlaceOrder(order);
-                holdPrice = order.Price;
-            }
-            else
-            {
-                var rangePriceMin = holdPrice * (1 + decimal.Parse(TxtRangeMin.Text.Trim()));
-                var rangePriceMax = holdPrice * (1 + decimal.Parse(TxtRangeMax.Text.Trim()));
-                var lossPrice = holdPrice * (1 - decimal.Parse(TxtLossPoint.Text.Trim()));
-                if ((txPrice >= rangePriceMin && txPrice <= rangePriceMax) || (txPrice <= lossPrice))
+                var marketid = $"{input.TargetCurrency}{input.BaseCurrency}";
+                var baseCurrency = input.BaseCurrency;
+                var targetCurrency = input.TargetCurrency;
+                //var initalPrice = input.InitalPrice;
+                var depth = input.ExchangeApi.GetOrderBook(marketid, 10);
+                var price = isBuy ? depth.Asks.OrderBy(a => a.Value.Price).FirstOrDefault() : depth.Bids.OrderByDescending(a => a.Value.Price).FirstOrDefault();
+                var txPrice = price.Value.Price;
+                //获取账户信息，确定目前账户存在多少钱和多少币
+                var account = input.ExchangeApi.GetAmountsAvailableToTrade();
+                //可买的比特币量            
+                var amountTx = SelfMath.ToFixed((account.TryGetValueOrDefault((isBuy ? baseCurrency : targetCurrency), 0) / txPrice), 2);
+                if (amountTx < 0.1m) return Task.CompletedTask;
+                var order = new ExchangeOrderRequest();
+                if (isBuy)
                 {
-                    order.Amount = amountTx;
+                    //优化
+                    order.Amount = amountTx * decimal.Parse(input.Hold) / 100;
                     order.IsBuy = isBuy;
                     order.Price = txPrice;
                     order.Symbol = marketid;
-                    exchange.PlaceOrder(order);
-                    isStop = true;
+                    input.ExchangeApi.PlaceOrder(order);
+                    input.InitalPrice = order.Price;
+                    input.Status = InputStatus.Doing;
+                }
+                else
+                {
+                    var rangePriceMin = input.InitalPrice * (1 + decimal.Parse(input.RangePriceMin) / 100);
+                    //var rangePriceMax = holdPrice * (1 + decimal.Parse(TxtRangeMax.Text.Trim()));
+                    var lossPrice = input.InitalPrice * (1 - decimal.Parse(input.LossPoint) / 100);
+                    if ((txPrice >= rangePriceMin) || (txPrice <= lossPrice))
+                    {
+                        order.Amount = amountTx;
+                        order.IsBuy = isBuy;
+                        order.Price = txPrice;
+                        order.Symbol = marketid;
+                        input.ExchangeApi.PlaceOrder(order);
+                        input.Status = InputStatus.Done;
+                    }
                 }
             }
+            catch (Exception e)
+            {
+            }
+            return Task.CompletedTask;
+        }
+        private void BtnGo_Click(object sender, EventArgs e)
+        {
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    var preList = inputList.Where(a => a.Status == InputStatus.None).ToList();
+                    var doingList = inputList.Where(a => a.Status == InputStatus.Doing).ToList();
+                    if (preList.Any())
+                    {
+                        foreach (var input in preList)
+                        {
+                            input.ExchangeApi = InitExchange(input);
+                            DoBuy(true, input).GetAwaiter().GetResult();
+                        }
+                    }
+                    else if (doingList.Any())
+                    {
+                        var tasks = new Task[doingList.Count];
+                        Parallel.For(0, doingList.Count, i =>
+                        {
+                            tasks[i] = DoBuy(false, inputList[i]);
+                        });
+                        Task.WhenAll(tasks).GetAwaiter().GetResult();
+                    }
+                    else if (inputList.All(a => a.Status == InputStatus.Done))
+                    {
+                        break;
+                    }
+                    Thread.Sleep(sleeptime);
+                }
+            });
         }
     }
 
@@ -168,8 +179,38 @@ namespace BitKiwiForm
         public string RangePriceMin { get; set; }
         public string RangePriceMax { get; set; }
         public string RangeTimeMin { get; set; }
-        public string RangeTimeMax { get; set; }
+        //public string RangeTimeMax { get; set; }
         public string LossPoint { get; set; }
         public string Hold { get; set; }
+        public DateTime InitalTime { get; set; }
+        public decimal InitalPrice { get; set; }
+        public InputStatus Status { get; set; }
+        public IExchangeAPI ExchangeApi { get; set; }
+    }
+    public enum InputStatus
+    {
+        None = 0,
+        Doing = 1,
+        Done = 2
+    }
+
+    public class InputValidator : AbstractValidator<Input>
+    {
+        public InputValidator()
+        {
+            RuleFor(i => i.BaseCurrency).NotNull().NotEmpty();
+            RuleFor(i => i.Hold).Must(IsNumeric);
+            RuleFor(i => i.LossPoint).Must(IsNumeric);
+            RuleFor(i => i.RangePriceMin).Must(IsNumeric);
+            RuleFor(i => i.RangePriceMax).Must(IsNumeric);
+            //RuleFor(i => i.RangeTimeMax).Must(IsNumeric);
+            RuleFor(i => i.RangeTimeMin).Must(IsNumeric);
+            RuleFor(i => i.TargetCurrency).NotNull().NotEmpty();
+            RuleFor(i => i.Status).NotNull();
+        }
+        public bool IsNumeric(string value)
+        {
+            return (!string.IsNullOrEmpty(value)) && Regex.IsMatch(value, @"^[+-]?\d*[.]?\d*$");
+        }
     }
 }
