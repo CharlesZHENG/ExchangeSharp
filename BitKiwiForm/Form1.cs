@@ -22,6 +22,7 @@ namespace BitKiwiForm
         private decimal diffprice;//买卖价差
         private int sleeptime = 3000;//睡眠时间
         private List<Input> inputList = new List<Input>();
+        //private static List<ViewModel> gridList = new List<ViewModel>();
 
         public Form1()
         {
@@ -29,9 +30,9 @@ namespace BitKiwiForm
         }
         private void Form1_Load(object sender, EventArgs e)
         {
-            for (int i = 0; i < Controls.Count; i++)
+            for (int i = 0; i < splitContainer1.Panel1.Controls.Count; i++)
             {
-                if (Controls[i] is ComboBox item)
+                if (splitContainer1.Panel1.Controls[i] is ComboBox item)
                 {
                     item.SelectedItem = item.Items[0];
                 }
@@ -39,7 +40,7 @@ namespace BitKiwiForm
             this.BoxHold.SelectedItem = this.BoxHold.Items[1];
         }
 
-        private void BtnSet_Click(object sender, EventArgs e)
+        private void BtnAdd_Click(object sender, EventArgs e)
         {
             var input = new Input()
             {
@@ -61,6 +62,7 @@ namespace BitKiwiForm
             {
                 input.ExchangeApi = InitExchange(input);
                 inputList.Add(input);
+                SetPrompInfo(inputList);
             }
             else
             {
@@ -128,6 +130,7 @@ namespace BitKiwiForm
                         order.Symbol = marketid;
                         input.ExchangeApi.PlaceOrder(order);
                         input.Status = InputStatus.Done;
+                        input.SellPrice = txPrice;
                     }
                 }
             }
@@ -135,6 +138,19 @@ namespace BitKiwiForm
             {
             }
             return Task.CompletedTask;
+        }
+        public delegate void DelegateSetCotnent(List<Input> list);
+        public void SetPrompInfo(List<Input> list)
+        {
+            if (this.dataGrid.InvokeRequired)
+            {
+                Invoke(new DelegateSetCotnent(SetPrompInfo), list);
+            }
+            else
+            {
+                this.dataGrid.DataSource = list;
+                this.dataGrid.Refresh();
+            }
         }
         private void BtnGo_Click(object sender, EventArgs e)
         {
@@ -161,8 +177,18 @@ namespace BitKiwiForm
                         });
                         Task.WhenAll(tasks).GetAwaiter().GetResult();
                     }
-                    else if (inputList.All(a => a.Status == InputStatus.Done))
+                    inputList.ForEach(a =>
                     {
+                        if (a.Status == InputStatus.Done)
+                        {
+                            a.Gain = (a.SellPrice - a.InitalPrice) / (a.InitalPrice) * 100;
+                        }
+                    });
+                    SetPrompInfo(inputList);
+
+                    if (inputList.All(a => a.Status == InputStatus.Done))
+                    {
+
                         break;
                     }
                     Thread.Sleep(sleeptime);
@@ -170,6 +196,33 @@ namespace BitKiwiForm
             });
         }
     }
+    /*
+    public class ViewModel
+    {
+        public string TargetCurrency { get; set; }
+        public string BaseCurrency { get; set; }
+        public decimal LossPoint { get; set; }
+        public decimal Hold { get; set; }
+        public DateTime InitalTime { get; set; }
+        public decimal InitalPrice { get; set; }
+        public decimal RangePriceMin { get; set; }
+        public decimal RangePriceMax { get; set; }
+        public decimal RangeTimeMin { get; set; }
+        public decimal SellPrice { get; set; }
+        public decimal Gain { get; set; }
+        public InputStatus Status { get; set; }
+
+        public static ViewModel From(Input input)
+        {
+            return new ViewModel()
+            {
+                TargetCurrency = input.TargetCurrency,
+                BaseCurrency = input.BaseCurrency,
+                Gain = (input.SellPrice - input.InitalPrice) / input.InitalPrice * 100,
+            };
+        }
+    }
+    */
 
     public class Input
     {
@@ -186,6 +239,8 @@ namespace BitKiwiForm
         public decimal InitalPrice { get; set; }
         public InputStatus Status { get; set; }
         public IExchangeAPI ExchangeApi { get; set; }
+        public decimal SellPrice { get; set; }
+        public decimal Gain { get; set; }
     }
     public enum InputStatus
     {
