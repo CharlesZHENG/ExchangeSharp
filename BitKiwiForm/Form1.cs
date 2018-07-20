@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -30,6 +31,11 @@ namespace BitKiwiForm
         }
         private void Form1_Load(object sender, EventArgs e)
         {
+            if (File.Exists("data.json"))
+            {
+                var data = File.ReadAllText("data.json");
+                inputList = JsonConvert.DeserializeObject<List<Input>>(data);
+            }
             for (int i = 0; i < splitContainer1.Panel1.Controls.Count; i++)
             {
                 if (splitContainer1.Panel1.Controls[i] is ComboBox item)
@@ -48,7 +54,7 @@ namespace BitKiwiForm
                 Hold = BoxHold.SelectedItem.ToString(),
                 LossPoint = BoxLossPoint.SelectedItem.ToString(),
                 RangePriceMin = BoxRangePrice.SelectedItem.ToString(),
-                RangePriceMax = "1.2",
+                RangePriceMax = "120",
                 RangeTimeMin = BoxRangeTime.SelectedItem.ToString(),
                 //RangeTimeMax = TxtTimeMax.Text,
                 TargetCurrency = TxtTargetCoin.Text.ToLower(),
@@ -122,6 +128,7 @@ namespace BitKiwiForm
                     var rangePriceMin = input.InitalPrice * (1 + decimal.Parse(input.RangePriceMin) / 100);
                     //var rangePriceMax = holdPrice * (1 + decimal.Parse(TxtRangeMax.Text.Trim()));
                     var lossPrice = input.InitalPrice * (1 - decimal.Parse(input.LossPoint) / 100);
+                    input.SellPrice = txPrice;
                     if ((txPrice >= rangePriceMin) || (txPrice <= lossPrice))
                     {
                         order.Amount = amountTx;
@@ -130,7 +137,6 @@ namespace BitKiwiForm
                         order.Symbol = marketid;
                         input.ExchangeApi.PlaceOrder(order);
                         input.Status = InputStatus.Done;
-                        input.SellPrice = txPrice;
                     }
                 }
             }
@@ -148,6 +154,7 @@ namespace BitKiwiForm
             }
             else
             {
+                this.dataGrid.DataSource = null;
                 this.dataGrid.DataSource = list;
                 this.dataGrid.Refresh();
             }
@@ -173,13 +180,14 @@ namespace BitKiwiForm
                         var tasks = new Task[doingList.Count];
                         Parallel.For(0, doingList.Count, i =>
                         {
+                            inputList[i].ExchangeApi = InitExchange(inputList[i]);
                             tasks[i] = DoBuy(false, inputList[i]);
                         });
                         Task.WhenAll(tasks).GetAwaiter().GetResult();
                     }
                     inputList.ForEach(a =>
                     {
-                        if (a.Status == InputStatus.Done)
+                        if (a.InitalPrice != 0)
                         {
                             a.Gain = (a.SellPrice - a.InitalPrice) / (a.InitalPrice) * 100;
                         }
@@ -188,12 +196,33 @@ namespace BitKiwiForm
 
                     if (inputList.All(a => a.Status == InputStatus.Done))
                     {
-
                         break;
                     }
                     Thread.Sleep(sleeptime);
                 }
             });
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            var data = JsonConvert.SerializeObject(inputList);
+            File.WriteAllText("data.json", data);
+        }
+
+        private void BtnDelete_Click(object sender, EventArgs e)
+        {
+            if (dataGrid.SelectedRows.Count>0)
+            {
+                var index = dataGrid.CurrentRow.Index;
+                inputList.RemoveAt(index);
+                dataGrid.DataSource = null;
+                dataGrid.DataSource = inputList;
+            }
+        }
+        private void BtnSave_Click(object sender, EventArgs e)
+        {
+            var data = JsonConvert.SerializeObject(inputList);
+            File.WriteAllText("data.json", data);
         }
     }
     /*
@@ -238,6 +267,7 @@ namespace BitKiwiForm
         public DateTime InitalTime { get; set; }
         public decimal InitalPrice { get; set; }
         public InputStatus Status { get; set; }
+        [JsonIgnore]
         public IExchangeAPI ExchangeApi { get; set; }
         public decimal SellPrice { get; set; }
         public decimal Gain { get; set; }

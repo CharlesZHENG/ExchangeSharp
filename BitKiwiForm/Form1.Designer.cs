@@ -48,6 +48,8 @@
             this.TxtTargetCoin = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.dataGrid = new System.Windows.Forms.DataGridView();
+            this.BtnDelete = new System.Windows.Forms.Button();
+            this.BtnSave = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -63,6 +65,8 @@
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.BtnSave);
+            this.splitContainer1.Panel1.Controls.Add(this.BtnDelete);
             this.splitContainer1.Panel1.Controls.Add(this.BtnGo);
             this.splitContainer1.Panel1.Controls.Add(this.BoxRangeTime);
             this.splitContainer1.Panel1.Controls.Add(this.BoxRangePrice);
@@ -130,16 +134,16 @@
             // 
             this.BoxHold.FormattingEnabled = true;
             this.BoxHold.Items.AddRange(new object[] {
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7",
-            "8",
-            "9",
-            "10"});
+            "10",
+            "20",
+            "30",
+            "40",
+            "50",
+            "60",
+            "70",
+            "80",
+            "90",
+            "100"});
             this.BoxHold.Location = new System.Drawing.Point(119, 261);
             this.BoxHold.Name = "BoxHold";
             this.BoxHold.Size = new System.Drawing.Size(100, 20);
@@ -282,11 +286,33 @@
             this.dataGrid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGrid.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGrid.Location = new System.Drawing.Point(0, 0);
+            this.dataGrid.MultiSelect = false;
             this.dataGrid.Name = "dataGrid";
             this.dataGrid.ReadOnly = true;
             this.dataGrid.RowTemplate.Height = 23;
+            this.dataGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dataGrid.Size = new System.Drawing.Size(1012, 434);
             this.dataGrid.TabIndex = 30;
+            // 
+            // BtnDelete
+            // 
+            this.BtnDelete.Location = new System.Drawing.Point(35, 373);
+            this.BtnDelete.Name = "BtnDelete";
+            this.BtnDelete.Size = new System.Drawing.Size(75, 23);
+            this.BtnDelete.TabIndex = 45;
+            this.BtnDelete.Text = "删除";
+            this.BtnDelete.UseVisualStyleBackColor = true;
+            this.BtnDelete.Click += new System.EventHandler(this.BtnDelete_Click);
+            // 
+            // BtnSave
+            // 
+            this.BtnSave.Location = new System.Drawing.Point(143, 373);
+            this.BtnSave.Name = "BtnSave";
+            this.BtnSave.Size = new System.Drawing.Size(75, 23);
+            this.BtnSave.TabIndex = 46;
+            this.BtnSave.Text = "保存";
+            this.BtnSave.UseVisualStyleBackColor = true;
+            this.BtnSave.Click += new System.EventHandler(this.BtnSave_Click);
             // 
             // Form1
             // 
@@ -296,6 +322,7 @@
             this.Controls.Add(this.splitContainer1);
             this.Name = "Form1";
             this.Text = "Form1";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel1.PerformLayout();
@@ -328,6 +355,8 @@
         private System.Windows.Forms.TextBox TxtTargetCoin;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.DataGridView dataGrid;
+        private System.Windows.Forms.Button BtnSave;
+        private System.Windows.Forms.Button BtnDelete;
     }
 }
 
