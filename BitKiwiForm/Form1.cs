@@ -5,7 +5,6 @@ using FluentValidation.Results;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -21,7 +20,7 @@ namespace BitKiwiForm
         private decimal floatamountbuy;//累计买单深度
         private decimal floatamountsell;//累计卖单深度
         private decimal diffprice;//买卖价差
-        private int sleeptime = 3000;//睡眠时间
+        private int sleeptime = 10000;//睡眠时间
         private List<Input> inputList = new List<Input>();
         //private static List<ViewModel> gridList = new List<ViewModel>();
 
@@ -35,6 +34,8 @@ namespace BitKiwiForm
             {
                 var data = File.ReadAllText("data.json");
                 inputList = JsonConvert.DeserializeObject<List<Input>>(data);
+                dataGrid.DataSource = null;
+                dataGrid.DataSource = inputList;
             }
             for (int i = 0; i < splitContainer1.Panel1.Controls.Count; i++)
             {
@@ -76,7 +77,6 @@ namespace BitKiwiForm
                 MessageBox.Show($"输入参数有误{JsonConvert.SerializeObject(error)}");
             }
         }
-
         private IExchangeAPI InitExchange(Input input)
         {
             IExchangeAPI exchange;
@@ -90,6 +90,7 @@ namespace BitKiwiForm
                     return exchange;
                 case "火币":
                     exchange = new ExchangeHuobiAPI();
+                   
                     return exchange;
                 default:
                     return null;
