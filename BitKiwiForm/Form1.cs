@@ -34,8 +34,18 @@ namespace BitKiwiForm
             {
                 var data = File.ReadAllText("data.json");
                 inputList = JsonConvert.DeserializeObject<List<Input>>(data);
+
                 dataGrid.DataSource = null;
                 dataGrid.DataSource = inputList;
+
+                this.dataGrid.DataSource=this.TableAdapter(inputList);
+                this.dataGrid.Columns[0].HeaderText = "持有币种";
+                this.dataGrid.Columns[1].HeaderText = "止损率";
+                this.dataGrid.Columns[2].HeaderText = "止盈率";
+                this.dataGrid.Columns[3].HeaderText = "盈利率";
+                this.dataGrid.Columns[4].HeaderText = "持仓比例";
+                this.dataGrid.Columns[5].HeaderText = "运行情况";
+
             }
             for (int i = 0; i < splitContainer1.Panel1.Controls.Count; i++)
             {
@@ -49,27 +59,29 @@ namespace BitKiwiForm
 
         private void BtnAdd_Click(object sender, EventArgs e)
         {
-            var input = new Input()
-            {
-                BaseCurrency = BoxBaseCoin.SelectedItem.ToString().ToLower(),
-                Hold = BoxHold.SelectedItem.ToString(),
-                LossPoint = BoxLossPoint.SelectedItem.ToString(),
-                RangePriceMin = BoxRangePrice.SelectedItem.ToString(),
-                RangePriceMax = "120",
-                RangeTimeMin = BoxRangeTime.SelectedItem.ToString(),
-                //RangeTimeMax = TxtTimeMax.Text,
-                TargetCurrency = TxtTargetCoin.Text.ToLower(),
-                WebSite = Box.SelectedItem.ToString(),
-                Status = InputStatus.None,
-                InitalTime = DateTime.Now
-            };
+            var input = new Input();
+            input.BaseCurrency = BoxBaseCoin.SelectedItem.ToString().ToLower();
+            input.Hold = BoxHold.SelectedItem.ToString();
+            input.LossPoint = BoxLossPoint.SelectedItem.ToString();
+            input.RangePriceMin = BoxRangePrice.SelectedItem.ToString();
+            input.RangePriceMax = "120";
+            input.RangeTimeMin = BoxRangeTime.SelectedItem.ToString();
+            //input.RangeTimeMax = TxtTimeMax.Text;
+            input.TargetCurrency = TxtTargetCoin.Text.ToLower();
+            input.WebSite = Box.SelectedItem.ToString();
+            input.Status = InputStatus.None;
+            input.InitalTime = DateTime.Now;
             var validator = new InputValidator();
             ValidationResult results = validator.Validate(input);
             if (results.IsValid)
             {
                 input.ExchangeApi = InitExchange(input);
                 inputList.Add(input);
-                SetPrompInfo(inputList);
+                List<TableDisplay> displayList=this.TableAdapter(inputList);
+                SetPrompInfo1(displayList);
+                var data = JsonConvert.SerializeObject(inputList);
+                File.WriteAllText("data.json", data);
+
             }
             else
             {
@@ -90,7 +102,7 @@ namespace BitKiwiForm
                     return exchange;
                 case "火币":
                     exchange = new ExchangeHuobiAPI();
-                   
+                    exchange.LoadAPIKeysUnsecure("f87dde0a-cd2be878-dcfdea13-b252a", "e6f9ba8b-6e9183b5-784e0203-509bf");
                     return exchange;
                 default:
                     return null;
@@ -160,6 +172,53 @@ namespace BitKiwiForm
                 this.dataGrid.Refresh();
             }
         }
+        public delegate void DelegateSetCotnent1(List<TableDisplay> list);
+        public void SetPrompInfo1(List<TableDisplay> list)
+        {
+            if (this.dataGrid.InvokeRequired)
+            {
+                Invoke(new DelegateSetCotnent1(SetPrompInfo1), list);
+            }
+            else
+            {
+                this.dataGrid.DataSource = null;
+                this.dataGrid.DataSource = list;
+                this.dataGrid.Refresh();
+            }
+        }
+        public List<TableDisplay> TableAdapter(List<Input> inputList)
+        {
+            List<TableDisplay> tableList = new List<TableDisplay>();
+            foreach (var input in inputList)
+            {
+                TableDisplay row = new TableDisplay();
+                // 持仓币种的名称
+                row.Tokenname = input.TargetCurrency + "/" + input.BaseCurrency;
+                // 每个币种的持仓比例
+                row.Hold = input.Hold + "%";
+                // 止损点
+                row.LossPoint = input.LossPoint;
+                // 止盈点
+                row.SellPoint = input.RangePriceMin.ToString();
+                // 盈利率
+                row.Gain = input.Gain.ToString();
+                if (input.Status.ToString().Equals("None"))
+                {
+                    row.Status = "尚未启动";
+                }
+                else if (input.Status.ToString().Equals("Doing"))
+                {
+                    row.Status = "正在运行";
+                }
+                else if (input.Status.ToString().Equals("Done"))
+                {
+                    row.Status = "订单已完成";
+                }
+                tableList.Add(row);
+            }      
+            return tableList;
+        }
+
         private void BtnGo_Click(object sender, EventArgs e)
         {
             Task.Run(() =>
@@ -193,7 +252,14 @@ namespace BitKiwiForm
                             a.Gain = (a.SellPrice - a.InitalPrice) / (a.InitalPrice) * 100;
                         }
                     });
-                    SetPrompInfo(inputList);
+
+                    SetPrompInfo1(this.TableAdapter(inputList));
+                    this.dataGrid.Columns[0].HeaderText = "持有币种";
+                    this.dataGrid.Columns[1].HeaderText = "止损率";
+                    this.dataGrid.Columns[2].HeaderText = "止盈率";
+                    this.dataGrid.Columns[3].HeaderText = "盈利率";
+                    this.dataGrid.Columns[4].HeaderText = "持仓比例";
+                    //SetPrompInfo(inputList);
 
                     if (inputList.All(a => a.Status == InputStatus.Done))
                     {
@@ -217,14 +283,27 @@ namespace BitKiwiForm
                 var index = dataGrid.CurrentRow.Index;
                 inputList.RemoveAt(index);
                 dataGrid.DataSource = null;
-                dataGrid.DataSource = inputList;
+                dataGrid.DataSource = this.TableAdapter(inputList);
+                this.dataGrid.Columns[0].HeaderText = "持有币种";
+                this.dataGrid.Columns[1].HeaderText = "止损率";
+                this.dataGrid.Columns[2].HeaderText = "止盈率";
+                this.dataGrid.Columns[3].HeaderText = "盈利率";
+                this.dataGrid.Columns[4].HeaderText = "持仓比例";
+
             }
         }
         private void BtnSave_Click(object sender, EventArgs e)
         {
             var data = JsonConvert.SerializeObject(inputList);
             File.WriteAllText("data.json", data);
-        }
+            dataGrid.DataSource = this.TableAdapter(inputList);
+            this.dataGrid.Columns[0].HeaderText = "持有币种";
+            this.dataGrid.Columns[1].HeaderText = "止损率";
+            this.dataGrid.Columns[2].HeaderText = "止盈率";
+            this.dataGrid.Columns[3].HeaderText = "盈利率";
+            this.dataGrid.Columns[4].HeaderText = "持仓比例";
+        }              
+
     }
     /*
     public class ViewModel

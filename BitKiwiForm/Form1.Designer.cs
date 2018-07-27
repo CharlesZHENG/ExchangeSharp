@@ -29,7 +29,6 @@
         private void InitializeComponent()
         {
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.BtnSave = new System.Windows.Forms.Button();
             this.BtnDelete = new System.Windows.Forms.Button();
             this.BtnGo = new System.Windows.Forms.Button();
             this.BoxRangeTime = new System.Windows.Forms.ComboBox();
@@ -71,7 +70,6 @@
             // 
             // splitContainer1.Panel1
             // 
-            this.splitContainer1.Panel1.Controls.Add(this.BtnSave);
             this.splitContainer1.Panel1.Controls.Add(this.BtnDelete);
             this.splitContainer1.Panel1.Controls.Add(this.BtnGo);
             this.splitContainer1.Panel1.Controls.Add(this.BoxRangeTime);
@@ -99,16 +97,6 @@
             this.splitContainer1.SplitterDistance = 300;
             this.splitContainer1.TabIndex = 30;
             // 
-            // BtnSave
-            // 
-            this.BtnSave.Location = new System.Drawing.Point(143, 373);
-            this.BtnSave.Name = "BtnSave";
-            this.BtnSave.Size = new System.Drawing.Size(75, 23);
-            this.BtnSave.TabIndex = 46;
-            this.BtnSave.Text = "保存";
-            this.BtnSave.UseVisualStyleBackColor = true;
-            this.BtnSave.Click += new System.EventHandler(this.BtnSave_Click);
-            // 
             // BtnDelete
             // 
             this.BtnDelete.Location = new System.Drawing.Point(35, 373);
@@ -121,11 +109,12 @@
             // 
             // BtnGo
             // 
+            this.BtnGo.Font = new System.Drawing.Font("宋体", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.BtnGo.Location = new System.Drawing.Point(143, 332);
             this.BtnGo.Name = "BtnGo";
-            this.BtnGo.Size = new System.Drawing.Size(75, 23);
+            this.BtnGo.Size = new System.Drawing.Size(75, 64);
             this.BtnGo.TabIndex = 44;
-            this.BtnGo.Text = "开始";
+            this.BtnGo.Text = "开始运行";
             this.BtnGo.UseVisualStyleBackColor = true;
             this.BtnGo.Click += new System.EventHandler(this.BtnGo_Click);
             // 
@@ -391,7 +380,6 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox TxtTargetCoin;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.Button BtnSave;
         private System.Windows.Forms.Button BtnDelete;
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.DataGridView dataGrid;
