@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,12 +23,83 @@ namespace BitKiwiForm
         private decimal diffprice;//买卖价差
         private int sleeptime = 10000;//睡眠时间
         private List<Input> inputList = new List<Input>();
-        //private static List<ViewModel> gridList = new List<ViewModel>();
+        private IExchangeAPI exchange = new ExchangeHuobiAPI();//new ExchangeHuobiAPI();
+        private string[] usdt;
+        private string[] eth;
+
+       //private static List<ViewModel> gridList = new List<ViewModel>();
 
         public Form1()
         {
             InitializeComponent();
+            exchange.LoadAPIKeysUnsecure("f87dde0a-cd2be878-dcfdea13-b252a", "e6f9ba8b-6e9183b5-784e0203-509bf");
+            this.usdt = this.GetUSDTToken();
+            this.eth = GetETHToken();
+            this.textBox1.Text = this.GetAmountUSDT().ToString();
+
         }
+
+        private string[] GetUSDTToken()
+        {
+            string path = Application.StartupPath+ "\\USDT.txt";
+            string[] str1;
+            using (StreamReader sr = new StreamReader(path, Encoding.UTF8, true))
+            {
+                str1 = sr.ReadLine().Split(',');
+            }
+            return str1;
+        }
+
+        private string[] GetETHToken()
+        {
+            string path = Application.StartupPath + "\\ETH.txt";
+            string[] str1;
+            using (StreamReader sr = new StreamReader(path, Encoding.UTF8, true))
+            {
+                str1 = sr.ReadLine().Split(',');
+            }
+            return str1;
+        }
+
+        private decimal GetEthUSDT()
+        {
+            var depth = exchange.GetOrderBook("eth/usdt", 1);
+            var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
+            return bids.ElementAt(0).Value.Price;
+        }
+
+        private decimal GetAmountUSDT()
+        {
+            var account = exchange.GetAmountsAvailableToTrade();
+            decimal amount = 0;
+            foreach (var account1 in account)
+            {
+                // 如果持有币种为usdt
+                if ("usdt".Equals(account1.Key))
+                {
+                    amount += account1.Value;
+                }                
+                else
+                {
+                    // 如果该币在usdt交易区，则折算为usdt
+                    if (this.usdt.Contains(account1.Key.ToUpper()))
+                    {
+                        var depth = exchange.GetOrderBook(account1.Key + "/usdt", 1);
+                        var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
+                        amount += account1.Value * bids.ElementAt(0).Value.Price;
+                    }
+                    // 如果该币在eth交易区，则先折算为eth，再折算为usdt
+                    else if(this.eth.Contains(account1.Key.ToUpper()))
+                    {
+                        var depth = exchange.GetOrderBook(account1.Key + "/eth", 1);
+                        var bids = depth.Bids.OrderByDescending(a => a.Value.Price);                        
+                        amount += account1.Value* bids.ElementAt(0).Value.Price* this.GetEthUSDT();
+                    }
+                }               
+            }
+            return amount;
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
             if (File.Exists("data.json"))
@@ -62,8 +134,8 @@ namespace BitKiwiForm
             var input = new Input();
             input.BaseCurrency = BoxBaseCoin.SelectedItem.ToString().ToLower();
             input.Hold = BoxHold.SelectedItem.ToString();
-            input.LossPoint = BoxLossPoint.SelectedItem.ToString();
-            input.RangePriceMin = BoxRangePrice.SelectedItem.ToString();
+            input.LossPoint = BoxLossPoint.Text;
+            input.RangePriceMin = BoxRangePrice.Text;
             input.RangePriceMax = "120";
             input.RangeTimeMin = BoxRangeTime.SelectedItem.ToString();
             //input.RangeTimeMax = TxtTimeMax.Text;
@@ -184,6 +256,7 @@ namespace BitKiwiForm
                 this.dataGrid.DataSource = null;
                 this.dataGrid.DataSource = list;
                 this.dataGrid.Refresh();
+                this.textBox1.Text = this.GetAmountUSDT().ToString();
             }
         }
         public List<TableDisplay> TableAdapter(List<Input> inputList)

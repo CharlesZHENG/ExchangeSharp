@@ -29,12 +29,15 @@
         private void InitializeComponent()
         {
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.BoxRangePrice = new System.Windows.Forms.TextBox();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.label10 = new System.Windows.Forms.Label();
+            this.label9 = new System.Windows.Forms.Label();
             this.BtnDelete = new System.Windows.Forms.Button();
             this.BtnGo = new System.Windows.Forms.Button();
             this.BoxRangeTime = new System.Windows.Forms.ComboBox();
-            this.BoxRangePrice = new System.Windows.Forms.ComboBox();
             this.BoxHold = new System.Windows.Forms.ComboBox();
-            this.BoxLossPoint = new System.Windows.Forms.ComboBox();
             this.BoxBaseCoin = new System.Windows.Forms.ComboBox();
             this.BtnAdd = new System.Windows.Forms.Button();
             this.Box = new System.Windows.Forms.ComboBox();
@@ -51,6 +54,7 @@
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.dataGrid = new System.Windows.Forms.DataGridView();
             this.webBrowser1 = new System.Windows.Forms.WebBrowser();
+            this.BoxLossPoint = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -70,12 +74,16 @@
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.BoxLossPoint);
+            this.splitContainer1.Panel1.Controls.Add(this.BoxRangePrice);
+            this.splitContainer1.Panel1.Controls.Add(this.textBox2);
+            this.splitContainer1.Panel1.Controls.Add(this.textBox1);
+            this.splitContainer1.Panel1.Controls.Add(this.label10);
+            this.splitContainer1.Panel1.Controls.Add(this.label9);
             this.splitContainer1.Panel1.Controls.Add(this.BtnDelete);
             this.splitContainer1.Panel1.Controls.Add(this.BtnGo);
             this.splitContainer1.Panel1.Controls.Add(this.BoxRangeTime);
-            this.splitContainer1.Panel1.Controls.Add(this.BoxRangePrice);
             this.splitContainer1.Panel1.Controls.Add(this.BoxHold);
-            this.splitContainer1.Panel1.Controls.Add(this.BoxLossPoint);
             this.splitContainer1.Panel1.Controls.Add(this.BoxBaseCoin);
             this.splitContainer1.Panel1.Controls.Add(this.BtnAdd);
             this.splitContainer1.Panel1.Controls.Add(this.Box);
@@ -96,6 +104,45 @@
             this.splitContainer1.Size = new System.Drawing.Size(1316, 729);
             this.splitContainer1.SplitterDistance = 300;
             this.splitContainer1.TabIndex = 30;
+            // 
+            // BoxRangePrice
+            // 
+            this.BoxRangePrice.Location = new System.Drawing.Point(119, 139);
+            this.BoxRangePrice.Name = "BoxRangePrice";
+            this.BoxRangePrice.Size = new System.Drawing.Size(100, 21);
+            this.BoxRangePrice.TabIndex = 50;
+            // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(143, 473);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(100, 21);
+            this.textBox2.TabIndex = 49;
+            // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(143, 430);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(100, 21);
+            this.textBox1.TabIndex = 48;
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(35, 476);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(77, 12);
+            this.label10.TabIndex = 47;
+            this.label10.Text = "累计盈利为：";
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(35, 435);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(89, 12);
+            this.label9.TabIndex = 46;
+            this.label9.Text = "当前总资产为：";
             // 
             // BtnDelete
             // 
@@ -132,19 +179,6 @@
             this.BoxRangeTime.Size = new System.Drawing.Size(100, 20);
             this.BoxRangeTime.TabIndex = 43;
             // 
-            // BoxRangePrice
-            // 
-            this.BoxRangePrice.FormattingEnabled = true;
-            this.BoxRangePrice.Items.AddRange(new object[] {
-            "5",
-            "10",
-            "15",
-            "20"});
-            this.BoxRangePrice.Location = new System.Drawing.Point(119, 136);
-            this.BoxRangePrice.Name = "BoxRangePrice";
-            this.BoxRangePrice.Size = new System.Drawing.Size(100, 20);
-            this.BoxRangePrice.TabIndex = 42;
-            // 
             // BoxHold
             // 
             this.BoxHold.FormattingEnabled = true;
@@ -163,17 +197,6 @@
             this.BoxHold.Name = "BoxHold";
             this.BoxHold.Size = new System.Drawing.Size(100, 20);
             this.BoxHold.TabIndex = 41;
-            // 
-            // BoxLossPoint
-            // 
-            this.BoxLossPoint.FormattingEnabled = true;
-            this.BoxLossPoint.Items.AddRange(new object[] {
-            "5",
-            "8"});
-            this.BoxLossPoint.Location = new System.Drawing.Point(119, 216);
-            this.BoxLossPoint.Name = "BoxLossPoint";
-            this.BoxLossPoint.Size = new System.Drawing.Size(100, 20);
-            this.BoxLossPoint.TabIndex = 40;
             // 
             // BoxBaseCoin
             // 
@@ -336,6 +359,13 @@
             this.webBrowser1.Size = new System.Drawing.Size(1012, 328);
             this.webBrowser1.TabIndex = 0;
             // 
+            // BoxLossPoint
+            // 
+            this.BoxLossPoint.Location = new System.Drawing.Point(119, 224);
+            this.BoxLossPoint.Name = "BoxLossPoint";
+            this.BoxLossPoint.Size = new System.Drawing.Size(100, 21);
+            this.BoxLossPoint.TabIndex = 51;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -364,9 +394,7 @@
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.Button BtnGo;
         private System.Windows.Forms.ComboBox BoxRangeTime;
-        private System.Windows.Forms.ComboBox BoxRangePrice;
         private System.Windows.Forms.ComboBox BoxHold;
-        private System.Windows.Forms.ComboBox BoxLossPoint;
         private System.Windows.Forms.ComboBox BoxBaseCoin;
         private System.Windows.Forms.Button BtnAdd;
         private System.Windows.Forms.ComboBox Box;
@@ -384,6 +412,12 @@
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.DataGridView dataGrid;
         private System.Windows.Forms.WebBrowser webBrowser1;
+        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.TextBox BoxRangePrice;
+        private System.Windows.Forms.TextBox BoxLossPoint;
     }
 }
 
