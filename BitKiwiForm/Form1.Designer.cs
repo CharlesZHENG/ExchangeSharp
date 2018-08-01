@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.BoxLossPoint = new System.Windows.Forms.TextBox();
             this.BoxRangePrice = new System.Windows.Forms.TextBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.textBox1 = new System.Windows.Forms.TextBox();
@@ -54,7 +55,6 @@
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.dataGrid = new System.Windows.Forms.DataGridView();
             this.webBrowser1 = new System.Windows.Forms.WebBrowser();
-            this.BoxLossPoint = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -104,6 +104,13 @@
             this.splitContainer1.Size = new System.Drawing.Size(1316, 729);
             this.splitContainer1.SplitterDistance = 300;
             this.splitContainer1.TabIndex = 30;
+            // 
+            // BoxLossPoint
+            // 
+            this.BoxLossPoint.Location = new System.Drawing.Point(119, 224);
+            this.BoxLossPoint.Name = "BoxLossPoint";
+            this.BoxLossPoint.Size = new System.Drawing.Size(100, 21);
+            this.BoxLossPoint.TabIndex = 51;
             // 
             // BoxRangePrice
             // 
@@ -359,13 +366,6 @@
             this.webBrowser1.Size = new System.Drawing.Size(1012, 328);
             this.webBrowser1.TabIndex = 0;
             // 
-            // BoxLossPoint
-            // 
-            this.BoxLossPoint.Location = new System.Drawing.Point(119, 224);
-            this.BoxLossPoint.Name = "BoxLossPoint";
-            this.BoxLossPoint.Size = new System.Drawing.Size(100, 21);
-            this.BoxLossPoint.TabIndex = 51;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -373,7 +373,7 @@
             this.ClientSize = new System.Drawing.Size(1316, 729);
             this.Controls.Add(this.splitContainer1);
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "白名单支持的交易系统";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.splitContainer1.Panel1.ResumeLayout(false);

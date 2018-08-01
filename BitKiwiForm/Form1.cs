@@ -17,28 +17,82 @@ namespace BitKiwiForm
 {
     public partial class Form1 : Form
     {
-
-        private decimal floatamountbuy;//累计买单深度
-        private decimal floatamountsell;//累计卖单深度
-        private decimal diffprice;//买卖价差
-        private int sleeptime = 10000;//睡眠时间
+        private int sleeptime = 30000;//休眠时间，默认为30s
         private List<Input> inputList = new List<Input>();
         private IExchangeAPI exchange = new ExchangeHuobiAPI();//new ExchangeHuobiAPI();
         private string[] usdt;
         private string[] eth;
-
-       //private static List<ViewModel> gridList = new List<ViewModel>();
+        private decimal init_usdt;
 
         public Form1()
         {
-            InitializeComponent();
-            exchange.LoadAPIKeysUnsecure("f87dde0a-cd2be878-dcfdea13-b252a", "e6f9ba8b-6e9183b5-784e0203-509bf");
-            this.usdt = this.GetUSDTToken();
-            this.eth = GetETHToken();
-            this.textBox1.Text = this.GetAmountUSDT().ToString();
-
+            InitializeComponent();           
         }
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            InitSetting();
+        }
+
+        // 初始化
+        // 1.加载火币API
+        // 2.加载火币购买持币情况
+        // 3.获取火币配置信息(USDT交易币集合、ETH交易币集合、ETH/USDT价格)
+        // 4.当前账户的资产总数(折合为USDT)
+        private void InitSetting()
+        {
+            // 1.加载火币API
+            for (int i = 0; i < splitContainer1.Panel1.Controls.Count; i++)
+            {
+                if (splitContainer1.Panel1.Controls[i] is ComboBox item)
+                {
+                    item.SelectedItem = item.Items[0];
+                }
+            }
+            
+
+            // 2.加载火币购买持币情况
+            if (File.Exists("data.json"))
+            {
+                var data = File.ReadAllText("data.json");
+                inputList = JsonConvert.DeserializeObject<List<Input>>(data);
+
+                dataGrid.DataSource = null;
+                dataGrid.DataSource = inputList;
+
+                this.dataGrid.DataSource = this.TableAdapter(inputList);
+                this.dataGrid.Columns[0].HeaderText = "持有币种";
+                this.dataGrid.Columns[1].HeaderText = "止损率";
+                this.dataGrid.Columns[2].HeaderText = "止盈率";
+                this.dataGrid.Columns[3].HeaderText = "盈利率";
+                this.dataGrid.Columns[4].HeaderText = "持仓比例";
+                this.dataGrid.Columns[5].HeaderText = "运行情况";
+
+            }
+            // 3.获取火币配置信息(USDT交易币集合、ETH交易币集合、ETH / USDT价格)
+            this.usdt = this.GetUSDTToken();
+            this.eth = GetETHToken();
+
+
+            
+            this.init_usdt = this.GetAmountUSDT();
+            
+
+
+            this.textBox1.Text = this.init_usdt.ToString();
+            this.BoxHold.SelectedItem = this.BoxHold.Items[1];
+            // 4.当前账户的资产总数(折合为USDT)
+            string path = Application.StartupPath + "\\账户信息.txt";
+            using (FileStream fs = new FileStream(path, FileMode.Create))
+            {
+                using (StreamWriter sw = new StreamWriter(fs))
+                {
+                    sw.WriteLine(this.init_usdt);
+                }
+            }
+        }
+
+        // 获取火币中USDT对应的交易币种
         private string[] GetUSDTToken()
         {
             string path = Application.StartupPath+ "\\USDT.txt";
@@ -50,6 +104,7 @@ namespace BitKiwiForm
             return str1;
         }
 
+        // 获取火币中ETH对应的交易币种
         private string[] GetETHToken()
         {
             string path = Application.StartupPath + "\\ETH.txt";
@@ -61,74 +116,93 @@ namespace BitKiwiForm
             return str1;
         }
 
+        // 获取火币中ETH/USDT的实时卖一价格
         private decimal GetEthUSDT()
         {
+            DateTime dt1 = System.DateTime.Now;
             var depth = exchange.GetOrderBook("eth/usdt", 1);
+            DateTime dt2 = System.DateTime.Now;
+            TimeSpan ts = dt2.Subtract(dt1);
             var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
+           
             return bids.ElementAt(0).Value.Price;
         }
-
-        private decimal GetAmountUSDT()
+        private Task<decimal> CalculateUSDT(KeyValuePair<string, decimal> account, decimal ethUsdt)
         {
-            var account = exchange.GetAmountsAvailableToTrade();
-            decimal amount = 0;
-            foreach (var account1 in account)
+            var amount = 0m;
+            // 如果持有币种为usdt
+            if ("usdt".Equals(account.Key))
             {
-                // 如果持有币种为usdt
-                if ("usdt".Equals(account1.Key))
-                {
-                    amount += account1.Value;
-                }                
-                else
-                {
-                    // 如果该币在usdt交易区，则折算为usdt
-                    if (this.usdt.Contains(account1.Key.ToUpper()))
-                    {
-                        var depth = exchange.GetOrderBook(account1.Key + "/usdt", 1);
-                        var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
-                        amount += account1.Value * bids.ElementAt(0).Value.Price;
-                    }
-                    // 如果该币在eth交易区，则先折算为eth，再折算为usdt
-                    else if(this.eth.Contains(account1.Key.ToUpper()))
-                    {
-                        var depth = exchange.GetOrderBook(account1.Key + "/eth", 1);
-                        var bids = depth.Bids.OrderByDescending(a => a.Value.Price);                        
-                        amount += account1.Value* bids.ElementAt(0).Value.Price* this.GetEthUSDT();
-                    }
-                }               
+                amount = account.Value;
             }
-            return amount;
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            if (File.Exists("data.json"))
+            else
             {
-                var data = File.ReadAllText("data.json");
-                inputList = JsonConvert.DeserializeObject<List<Input>>(data);
-
-                dataGrid.DataSource = null;
-                dataGrid.DataSource = inputList;
-
-                this.dataGrid.DataSource=this.TableAdapter(inputList);
-                this.dataGrid.Columns[0].HeaderText = "持有币种";
-                this.dataGrid.Columns[1].HeaderText = "止损率";
-                this.dataGrid.Columns[2].HeaderText = "止盈率";
-                this.dataGrid.Columns[3].HeaderText = "盈利率";
-                this.dataGrid.Columns[4].HeaderText = "持仓比例";
-                this.dataGrid.Columns[5].HeaderText = "运行情况";
-
-            }
-            for (int i = 0; i < splitContainer1.Panel1.Controls.Count; i++)
-            {
-                if (splitContainer1.Panel1.Controls[i] is ComboBox item)
+                // 如果该币在usdt交易区，则折算为usdt
+                if (this.usdt.Contains(account.Key.ToUpper()))
                 {
-                    item.SelectedItem = item.Items[0];
+                    var depth = exchange.GetOrderBook(account.Key + "/usdt", 1);
+                    var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
+                    amount = account.Value * bids.ElementAt(0).Value.Price;
+                }
+                // 如果该币在eth交易区，则先折算为eth，再折算为usdt
+                else if (this.eth.Contains(account.Key.ToUpper()))
+                {
+                    var depth = exchange.GetOrderBook(account.Key + "/eth", 1);
+                    var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
+                    amount += account.Value * bids.ElementAt(0).Value.Price * ethUsdt;
                 }
             }
-            this.BoxHold.SelectedItem = this.BoxHold.Items[1];
+            return Task.FromResult<decimal>(amount);
         }
+        // 获取火币的总资产(折算为USDT)
+        private decimal GetAmountUSDT()
+        {
+            var account = exchange.GetAmountsAvailableToTrade().ToList();
+            var tasks = new Task<decimal>[account.Count];
+            var ethUsdt = GetEthUSDT();
+            Parallel.For(0, account.Count, i =>
+            {
+                tasks[i] = CalculateUSDT(account[i], ethUsdt);
+            });
+            var amounts = Task.WhenAll(tasks).GetAwaiter().GetResult();
+            return amounts.Sum();
 
+            //return amounts.Sum();
+            //var account = exchange.GetAmountsAvailableToTrade();
+            //decimal amount = 0;           
+            //foreach (var account1 in account)
+            //{
+            //    // 如果持有币种小于0.01，不纳入统计
+            //    if (account1.Value<0.01m)
+            //    {
+
+            //    }
+            //    // 如果持有币种为usdt
+            //    else if ("usdt".Equals(account1.Key))
+            //    {
+            //        amount += account1.Value;
+            //    }                
+            //    else
+            //    {
+            //        // 如果该币在usdt交易区，则折算为usdt
+            //        if (this.usdt.Contains(account1.Key.ToUpper()))
+            //        {
+            //            var depth = exchange.GetOrderBook(account1.Key + "/usdt", 1);
+            //            var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
+            //            amount += account1.Value * bids.ElementAt(0).Value.Price;
+            //        }
+            //        // 如果该币在eth交易区，则先折算为eth，再折算为usdt
+            //        else if(this.eth.Contains(account1.Key.ToUpper()))
+            //        {                       
+            //            var depth = exchange.GetOrderBook(account1.Key + "/eth", 1);
+            //            var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
+            //            amount += account1.Value* bids.ElementAt(0).Value.Price* this.GetEthUSDT();
+            //        }
+            //    }
+            //}            
+            //return amount;
+        }
+          
         private void BtnAdd_Click(object sender, EventArgs e)
         {
             var input = new Input();
@@ -150,10 +224,9 @@ namespace BitKiwiForm
                 input.ExchangeApi = InitExchange(input);
                 inputList.Add(input);
                 List<TableDisplay> displayList=this.TableAdapter(inputList);
-                SetPrompInfo1(displayList);
+                SetPrompInfoT(displayList);
                 var data = JsonConvert.SerializeObject(inputList);
                 File.WriteAllText("data.json", data);
-
             }
             else
             {
@@ -195,7 +268,7 @@ namespace BitKiwiForm
                 var account = input.ExchangeApi.GetAmountsAvailableToTrade();
                 //可买的比特币量            
                 var amountTx = SelfMath.ToFixed((account.TryGetValueOrDefault((isBuy ? baseCurrency : targetCurrency), 0) / txPrice), 2);
-                if (amountTx < 0.1m) return Task.CompletedTask;
+                if (amountTx < 0.001m) return Task.CompletedTask;
                 var order = new ExchangeOrderRequest();
                 if (isBuy)
                 {
@@ -245,18 +318,25 @@ namespace BitKiwiForm
             }
         }
         public delegate void DelegateSetCotnent1(List<TableDisplay> list);
-        public void SetPrompInfo1(List<TableDisplay> list)
+        public void SetPrompInfoT(List<TableDisplay> list)
         {
             if (this.dataGrid.InvokeRequired)
             {
-                Invoke(new DelegateSetCotnent1(SetPrompInfo1), list);
+                Invoke(new DelegateSetCotnent1(SetPrompInfoT), list);
             }
             else
             {
                 this.dataGrid.DataSource = null;
                 this.dataGrid.DataSource = list;
+                this.dataGrid.Columns[0].HeaderText = "持有币种";
+                this.dataGrid.Columns[1].HeaderText = "止损率";
+                this.dataGrid.Columns[2].HeaderText = "止盈率";
+                this.dataGrid.Columns[3].HeaderText = "盈利率";
+                this.dataGrid.Columns[4].HeaderText = "持仓比例";
+                this.dataGrid.Columns[5].HeaderText = "运行情况";
                 this.dataGrid.Refresh();
                 this.textBox1.Text = this.GetAmountUSDT().ToString();
+                this.textBox2.Text = (this.GetAmountUSDT() - this.init_usdt).ToString();
             }
         }
         public List<TableDisplay> TableAdapter(List<Input> inputList)
@@ -291,7 +371,6 @@ namespace BitKiwiForm
             }      
             return tableList;
         }
-
         private void BtnGo_Click(object sender, EventArgs e)
         {
             Task.Run(() =>
@@ -326,12 +405,8 @@ namespace BitKiwiForm
                         }
                     });
 
-                    SetPrompInfo1(this.TableAdapter(inputList));
-                    this.dataGrid.Columns[0].HeaderText = "持有币种";
-                    this.dataGrid.Columns[1].HeaderText = "止损率";
-                    this.dataGrid.Columns[2].HeaderText = "止盈率";
-                    this.dataGrid.Columns[3].HeaderText = "盈利率";
-                    this.dataGrid.Columns[4].HeaderText = "持仓比例";
+                    SetPrompInfoT(this.TableAdapter(inputList));
+                   
                     //SetPrompInfo(inputList);
 
                     if (inputList.All(a => a.Status == InputStatus.Done))
@@ -362,7 +437,7 @@ namespace BitKiwiForm
                 this.dataGrid.Columns[2].HeaderText = "止盈率";
                 this.dataGrid.Columns[3].HeaderText = "盈利率";
                 this.dataGrid.Columns[4].HeaderText = "持仓比例";
-
+                this.dataGrid.Columns[5].HeaderText = "运行情况";
             }
         }
         private void BtnSave_Click(object sender, EventArgs e)
@@ -375,7 +450,7 @@ namespace BitKiwiForm
             this.dataGrid.Columns[2].HeaderText = "止盈率";
             this.dataGrid.Columns[3].HeaderText = "盈利率";
             this.dataGrid.Columns[4].HeaderText = "持仓比例";
-        }              
+        }             
 
     }
     /*
