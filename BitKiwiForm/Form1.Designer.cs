@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.BoxLossPoint = new System.Windows.Forms.TextBox();
             this.BoxRangePrice = new System.Windows.Forms.TextBox();
@@ -55,6 +56,7 @@
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.dataGrid = new System.Windows.Forms.DataGridView();
             this.webBrowser1 = new System.Windows.Forms.WebBrowser();
+            this.timer = new System.Windows.Forms.Timer(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -366,6 +368,11 @@
             this.webBrowser1.Size = new System.Drawing.Size(1012, 328);
             this.webBrowser1.TabIndex = 0;
             // 
+            // timer
+            // 
+            this.timer.Interval = 10000;
+            this.timer.Tick += new System.EventHandler(this.timer_Tick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -418,6 +425,7 @@
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.TextBox BoxRangePrice;
         private System.Windows.Forms.TextBox BoxLossPoint;
+        private System.Windows.Forms.Timer timer;
     }
 }
 
