@@ -24,6 +24,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitKiwiForm", "BitKiwiForm\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BitKiwi.Lib", "BitKiwi.Lib\BitKiwi.Lib.csproj", "{FA70D749-E0BE-41FD-B699-92F1CD7A07CC}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Framework", "Framework", "{E0955F61-483A-440A-9A2C-59459539AEBF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GetWhiteList", "GetWhiteList\GetWhiteList.csproj", "{4EE487A2-6C05-40E0-8548-2868273D1F1A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,9 +54,18 @@ Global
 		{FA70D749-E0BE-41FD-B699-92F1CD7A07CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA70D749-E0BE-41FD-B699-92F1CD7A07CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA70D749-E0BE-41FD-B699-92F1CD7A07CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4EE487A2-6C05-40E0-8548-2868273D1F1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EE487A2-6C05-40E0-8548-2868273D1F1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EE487A2-6C05-40E0-8548-2868273D1F1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EE487A2-6C05-40E0-8548-2868273D1F1A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B4ADDAEF-95BF-4FDA-8B2F-8B899EDA3F45} = {E0955F61-483A-440A-9A2C-59459539AEBF}
+		{85BBD19C-5702-4394-BD7C-CE08309F6F49} = {E0955F61-483A-440A-9A2C-59459539AEBF}
+		{FA70D749-E0BE-41FD-B699-92F1CD7A07CC} = {E0955F61-483A-440A-9A2C-59459539AEBF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {46DCEF62-6B50-4260-8C47-4368B05CFAB4}

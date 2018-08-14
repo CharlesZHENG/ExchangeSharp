@@ -86,6 +86,7 @@ namespace BitKiwiForm
                 this.dataGrid.Columns[4].HeaderText = "持仓比例";
                 this.dataGrid.Columns[5].HeaderText = "运行情况";
                 this.dataGrid.Refresh();
+                AutoSizeColumn(this.dataGrid);
             }
         }
 
@@ -136,6 +137,7 @@ namespace BitKiwiForm
             input.WebSite = Box.SelectedItem.ToString();
             input.Status = InputStatus.None;
             input.InitalTime = DateTime.Now;
+            input.Precision = txtPrecision.Text.Trim();
             var validator = new InputValidator();
             ValidationResult results = validator.Validate(input);
             if (results.IsValid)
@@ -168,6 +170,7 @@ namespace BitKiwiForm
                 this.dataGrid.Columns[3].HeaderText = "盈利率";
                 this.dataGrid.Columns[4].HeaderText = "持仓比例";
                 this.dataGrid.Columns[5].HeaderText = "运行情况";
+                AutoSizeColumn(this.dataGrid);
             }
         }
 
@@ -228,6 +231,7 @@ namespace BitKiwiForm
             this.dataGrid.Columns[2].HeaderText = "止盈率";
             this.dataGrid.Columns[3].HeaderText = "盈利率";
             this.dataGrid.Columns[4].HeaderText = "持仓比例";
+            AutoSizeColumn(this.dataGrid);
         }
 
         private Task<decimal> CalculateUSDT(KeyValuePair<string, decimal> account, decimal ethUsdt)
@@ -277,7 +281,7 @@ namespace BitKiwiForm
                     //可买的比特币量            
                     var amountTx = account.TryGetValueOrDefault(baseCurrency, 0) / txPrice;
                     if (amountTx < 0.001m) return Task.CompletedTask;
-                    order.Amount = SelfMath.ToFixed(amountTx * decimal.Parse(input.Hold) / 100, 2);
+                    order.Amount = SelfMath.ToFixed(amountTx * decimal.Parse(input.Hold) / 100, int.Parse(input.Precision));
                     order.IsBuy = isBuy;
                     order.Price = txPrice;
                     order.Symbol = marketid;
@@ -294,7 +298,7 @@ namespace BitKiwiForm
                     input.SellPrice = txPrice;
                     if ((txPrice >= rangePriceMin) || (txPrice <= lossPrice))
                     {
-                        order.Amount = decimal.Parse(input.Amount) * (1 - 2 / 1000);
+                        order.Amount = SelfMath.ToFixed(decimal.Parse(input.Amount) * (1 - 2.5m / 1000), int.Parse(input.Precision));
                         order.IsBuy = isBuy;
                         order.Price = txPrice;
                         order.Symbol = marketid;
@@ -340,41 +344,6 @@ namespace BitKiwiForm
             });
             var amounts = Task.WhenAll(tasks).GetAwaiter().GetResult();
             return amounts.Sum();
-
-            //return amounts.Sum();
-            //var account = exchange.GetAmountsAvailableToTrade();
-            //decimal amount = 0;           
-            //foreach (var account1 in account)
-            //{
-            //    // 如果持有币种小于0.01，不纳入统计
-            //    if (account1.Value<0.01m)
-            //    {
-
-            //    }
-            //    // 如果持有币种为usdt
-            //    else if ("usdt".Equals(account1.Key))
-            //    {
-            //        amount += account1.Value;
-            //    }                
-            //    else
-            //    {
-            //        // 如果该币在usdt交易区，则折算为usdt
-            //        if (this.usdt.Contains(account1.Key.ToUpper()))
-            //        {
-            //            var depth = exchange.GetOrderBook(account1.Key + "/usdt", 1);
-            //            var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
-            //            amount += account1.Value * bids.ElementAt(0).Value.Price;
-            //        }
-            //        // 如果该币在eth交易区，则先折算为eth，再折算为usdt
-            //        else if(this.eth.Contains(account1.Key.ToUpper()))
-            //        {                       
-            //            var depth = exchange.GetOrderBook(account1.Key + "/eth", 1);
-            //            var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
-            //            amount += account1.Value* bids.ElementAt(0).Value.Price* this.GetEthUSDT();
-            //        }
-            //    }
-            //}            
-            //return amount;
         }
 
         // 获取火币中ETH对应的交易币种
@@ -425,11 +394,41 @@ namespace BitKiwiForm
                     exchange = new ExchangeFCoinAPI();
                     return exchange;
                 case "火币":
-                    exchange = new ExchangeHuobiAPI();                  
+                    exchange = new ExchangeHuobiAPI();
                     return exchange;
                 default:
                     return null;
             }
+        }
+        /// <summary>
+        /// 使DataGridView的列自适应宽度
+        /// </summary>
+        /// <param name="dgViewFiles"></param>
+        private void AutoSizeColumn(DataGridView dgViewFiles)
+        {
+            int width = 0;
+            //使列自使用宽度
+            //对于DataGridView的每一个列都调整
+            for (int i = 0; i < dgViewFiles.Columns.Count; i++)
+            {
+                //将每一列都调整为自动适应模式
+                dgViewFiles.AutoResizeColumn(i, DataGridViewAutoSizeColumnMode.AllCells);
+                //记录整个DataGridView的宽度
+                width += dgViewFiles.Columns[i].Width;
+            }
+            //判断调整后的宽度与原来设定的宽度的关系，如果是调整后的宽度大于原来设定的宽度，
+            //则将DataGridView的列自动调整模式设置为显示的列即可，
+            //如果是小于原来设定的宽度，将模式改为填充。
+            if (width > dgViewFiles.Size.Width)
+            {
+                dgViewFiles.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells;
+            }
+            else
+            {
+                dgViewFiles.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            }
+            //冻结某列 从左开始 0，1，2
+            dgViewFiles.Columns[1].Frozen = true;
         }
 
         // 初始化
@@ -440,7 +439,7 @@ namespace BitKiwiForm
         private void InitSetting()
         {
             // 1.加载火币API
-           
+
             for (int i = 0; i < splitContainer1.Panel1.Controls.Count; i++)
             {
                 if (splitContainer1.Panel1.Controls[i] is ComboBox item)
@@ -465,6 +464,7 @@ namespace BitKiwiForm
                 this.dataGrid.Columns[3].HeaderText = "盈利率";
                 this.dataGrid.Columns[4].HeaderText = "持仓比例";
                 this.dataGrid.Columns[5].HeaderText = "运行情况";
+                AutoSizeColumn(this.dataGrid);
 
             }
             // 3.获取火币配置信息(USDT交易币集合、ETH交易币集合、ETH / USDT价格)
@@ -485,10 +485,10 @@ namespace BitKiwiForm
         }
         private void timer_Tick(object sender, EventArgs e)
         {
-            Task.Run(() =>
-            {
-                SetAmount(this.GetAmountUSDT().ToString(), (this.GetAmountUSDT() - this.init_usdt).ToString());
-            });
+            //Task.Run(() =>
+            //{
+            //    SetAmount(this.GetAmountUSDT().ToString(), (this.GetAmountUSDT() - this.init_usdt).ToString());
+            //});
         }
     }
     /*
@@ -538,7 +538,21 @@ namespace BitKiwiForm
         public string TargetCurrency { get; set; }
         public string WebSite { get; set; }
         public string Amount { get; set; }
+        private string _Precision;
+        public string Precision
+        {
+            get
+            {
+
+                return string.IsNullOrEmpty(this._Precision) ? "2" : this._Precision;
+            }
+            set
+            {
+                this._Precision = value;
+            }
+        }
     }
+
     public class InputValidator : AbstractValidator<Input>
     {
         public InputValidator()
@@ -552,6 +566,7 @@ namespace BitKiwiForm
             RuleFor(i => i.RangeTimeMin).Must(IsNumeric);
             RuleFor(i => i.TargetCurrency).NotNull().NotEmpty();
             RuleFor(i => i.Status).NotNull();
+            RuleFor(i => i.Precision.ToString()).Must(IsNumeric);
         }
         public bool IsNumeric(string value)
         {

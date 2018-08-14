@@ -30,6 +30,8 @@
         {
             this.components = new System.ComponentModel.Container();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.label11 = new System.Windows.Forms.Label();
+            this.txtPrecision = new System.Windows.Forms.TextBox();
             this.BoxLossPoint = new System.Windows.Forms.TextBox();
             this.BoxRangePrice = new System.Windows.Forms.TextBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
@@ -76,6 +78,8 @@
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.label11);
+            this.splitContainer1.Panel1.Controls.Add(this.txtPrecision);
             this.splitContainer1.Panel1.Controls.Add(this.BoxLossPoint);
             this.splitContainer1.Panel1.Controls.Add(this.BoxRangePrice);
             this.splitContainer1.Panel1.Controls.Add(this.textBox2);
@@ -107,6 +111,22 @@
             this.splitContainer1.SplitterDistance = 300;
             this.splitContainer1.TabIndex = 30;
             // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(35, 334);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(53, 12);
+            this.label11.TabIndex = 53;
+            this.label11.Text = "精度位数";
+            // 
+            // txtPrecision
+            // 
+            this.txtPrecision.Location = new System.Drawing.Point(119, 334);
+            this.txtPrecision.Name = "txtPrecision";
+            this.txtPrecision.Size = new System.Drawing.Size(100, 21);
+            this.txtPrecision.TabIndex = 52;
+            // 
             // BoxLossPoint
             // 
             this.BoxLossPoint.Location = new System.Drawing.Point(119, 224);
@@ -123,14 +143,14 @@
             // 
             // textBox2
             // 
-            this.textBox2.Location = new System.Drawing.Point(143, 473);
+            this.textBox2.Location = new System.Drawing.Point(143, 516);
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(100, 21);
             this.textBox2.TabIndex = 49;
             // 
             // textBox1
             // 
-            this.textBox1.Location = new System.Drawing.Point(143, 430);
+            this.textBox1.Location = new System.Drawing.Point(143, 473);
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(100, 21);
             this.textBox1.TabIndex = 48;
@@ -138,7 +158,7 @@
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(35, 476);
+            this.label10.Location = new System.Drawing.Point(35, 519);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(77, 12);
             this.label10.TabIndex = 47;
@@ -147,7 +167,7 @@
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(35, 435);
+            this.label9.Location = new System.Drawing.Point(35, 478);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(89, 12);
             this.label9.TabIndex = 46;
@@ -155,7 +175,7 @@
             // 
             // BtnDelete
             // 
-            this.BtnDelete.Location = new System.Drawing.Point(35, 373);
+            this.BtnDelete.Location = new System.Drawing.Point(35, 416);
             this.BtnDelete.Name = "BtnDelete";
             this.BtnDelete.Size = new System.Drawing.Size(75, 23);
             this.BtnDelete.TabIndex = 45;
@@ -166,7 +186,7 @@
             // BtnGo
             // 
             this.BtnGo.Font = new System.Drawing.Font("宋体", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.BtnGo.Location = new System.Drawing.Point(143, 332);
+            this.BtnGo.Location = new System.Drawing.Point(143, 375);
             this.BtnGo.Name = "BtnGo";
             this.BtnGo.Size = new System.Drawing.Size(75, 64);
             this.BtnGo.TabIndex = 44;
@@ -222,7 +242,7 @@
             // 
             // BtnAdd
             // 
-            this.BtnAdd.Location = new System.Drawing.Point(35, 333);
+            this.BtnAdd.Location = new System.Drawing.Point(35, 376);
             this.BtnAdd.Name = "BtnAdd";
             this.BtnAdd.Size = new System.Drawing.Size(75, 23);
             this.BtnAdd.TabIndex = 38;
@@ -370,7 +390,7 @@
             // 
             // timer
             // 
-            this.timer.Interval = 10000;
+            this.timer.Interval = 20000;
             this.timer.Tick += new System.EventHandler(this.timer_Tick);
             // 
             // Form1
@@ -426,6 +446,8 @@
         private System.Windows.Forms.TextBox BoxRangePrice;
         private System.Windows.Forms.TextBox BoxLossPoint;
         private System.Windows.Forms.Timer timer;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.TextBox txtPrecision;
     }
 }
 
