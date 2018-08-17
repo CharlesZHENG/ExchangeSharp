@@ -361,12 +361,8 @@ namespace BitKiwiForm
         // 获取火币中ETH/USDT的实时卖一价格
         private decimal GetEthUSDT()
         {
-            DateTime dt1 = System.DateTime.Now;
             var depth = exchange.GetOrderBook("eth/usdt", 1);
-            DateTime dt2 = System.DateTime.Now;
-            TimeSpan ts = dt2.Subtract(dt1);
             var bids = depth.Bids.OrderByDescending(a => a.Value.Price);
-
             return bids.ElementAt(0).Value.Price;
         }
 
@@ -395,6 +391,7 @@ namespace BitKiwiForm
                     return exchange;
                 case "火币":
                     exchange = new ExchangeHuobiAPI();
+                    //           
                     return exchange;
                 default:
                     return null;
@@ -438,8 +435,7 @@ namespace BitKiwiForm
         // 4.当前账户的资产总数(折合为USDT)
         private void InitSetting()
         {
-            // 1.加载火币API
-
+            // 1.加载火币API            
             for (int i = 0; i < splitContainer1.Panel1.Controls.Count; i++)
             {
                 if (splitContainer1.Panel1.Controls[i] is ComboBox item)
