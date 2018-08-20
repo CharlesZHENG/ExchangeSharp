@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using BitKiwiForm.Strategy;
 
 namespace BitKiwiForm
 {
@@ -20,6 +21,12 @@ namespace BitKiwiForm
         None = 0,
         Doing = 1,
         Done = 2
+    }
+
+    public enum InputSrc
+    {
+        UI = 0,
+        StrategyStatistics = 1
     }
 
     public partial class Form1 : Form
@@ -103,7 +110,7 @@ namespace BitKiwiForm
                 // 止损点
                 row.LossPoint = input.LossPoint;
                 // 止盈点
-                row.SellPoint = input.RangePriceMin.ToString();
+                row.SellPoint = input.GainPointMin.ToString();
                 // 盈利率
                 row.Gain = input.Gain.ToString();
                 if (input.Status.ToString().Equals("None"))
@@ -129,8 +136,8 @@ namespace BitKiwiForm
             input.BaseCurrency = BoxBaseCoin.SelectedItem.ToString().ToLower();
             input.Hold = BoxHold.SelectedItem.ToString();
             input.LossPoint = BoxLossPoint.Text;
-            input.RangePriceMin = BoxRangePrice.Text;
-            input.RangePriceMax = "120";
+            input.GainPointMin = BoxRangePrice.Text;
+            input.GainPointMax = "120";
             input.RangeTimeMin = BoxRangeTime.SelectedItem.ToString();
             //input.RangeTimeMax = TxtTimeMax.Text;
             input.TargetCurrency = TxtTargetCoin.Text.ToLower();
@@ -138,6 +145,7 @@ namespace BitKiwiForm
             input.Status = InputStatus.None;
             input.InitalTime = DateTime.Now;
             input.Precision = txtPrecision.Text.Trim();
+            input.InputSrc = InputSrc.UI;
             var validator = new InputValidator();
             ValidationResult results = validator.Validate(input);
             if (results.IsValid)
@@ -174,8 +182,66 @@ namespace BitKiwiForm
             }
         }
 
+        private void AddToList(int stime, string marketid, string webSite)
+        {
+            List<double> dataList = new List<double>();
+            var s = new Statistics();
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    if (dataList.Count < 500)
+                    {
+                        var data = s.GetGata(marketid, exchange);
+                        dataList.Add((double)data.Price);
+                        Thread.Sleep(stime);
+                    }
+                    else
+                    {
+                        var result = s.GetStatisticsResult(dataList.ToArray());
+                        if (result.IsNormal)
+                        {
+                            //添加到list
+                            var input = new Input();
+                            input.BaseCurrency = marketid.Split(new[] { '/' })[0];
+                            input.Hold = "20";
+                            input.LossPoint = (100 * 3 * result.StdDev / result.Mean).ToString();
+                            input.GainPointMin = (100 * 2 * result.StdDev / result.Mean).ToString();
+                            input.GainPointMax = "120";
+                            input.RangeTimeMin = "500";//s
+                            input.InitalPrice = (decimal)(result.Mean - 2 * result.StdDev);
+                            input.TargetCurrency = marketid.Split(new[] { '/' })[1];
+                            input.WebSite = webSite;
+                            input.Status = InputStatus.None;
+                            input.InitalTime = DateTime.Now;
+                            input.Precision = "2";
+                            input.InputSrc = InputSrc.StrategyStatistics;
+                            var validator = new InputValidator();
+                            ValidationResult results = validator.Validate(input);
+                            if (results.IsValid)
+                            {
+                                input.ExchangeApi = InitExchange(input);
+                                inputList.Add(input);
+                                List<TableDisplay> displayList = this.TableAdapter(inputList);
+                                SetPrompInfoT(displayList);
+                                var data = JsonConvert.SerializeObject(inputList);
+                                File.WriteAllText("data.json", data);
+                            }
+                            else
+                            {
+                                var error = results.Errors.Select(o => o.ErrorMessage).ToList();
+                                MessageBox.Show($@"输入参数有误{JsonConvert.SerializeObject(error)}");
+                            }
+                        }
+                        dataList.Clear();
+                    }
+                }
+            });
+        }
+
         private void BtnGo_Click(object sender, EventArgs e)
         {
+            AddToList(500, "eth/usdt", "火币");
             Task.Run(() =>
             {
                 while (true)
@@ -271,8 +337,11 @@ namespace BitKiwiForm
                 var targetCurrency = input.TargetCurrency;
                 //var initalPrice = input.InitalPrice;
                 var depth = input.ExchangeApi.GetOrderBook(marketid, 10);
-                var price = isBuy ? depth.Asks.OrderBy(a => a.Value.Price).FirstOrDefault() : depth.Bids.OrderByDescending(a => a.Value.Price).FirstOrDefault();
-                var txPrice = price.Value.Price;
+                var txPrice =
+                    input.InitalPrice == 0 ?
+                    (isBuy ? depth.Asks.OrderBy(a => a.Value.Price).FirstOrDefault() : depth.Bids.OrderByDescending(a => a.Value.Price).FirstOrDefault()).Value.Price
+                    : input.InitalPrice;
+
                 //获取账户信息，确定目前账户存在多少钱和多少币
                 var account = input.ExchangeApi.GetAmountsAvailableToTrade();
                 var order = new ExchangeOrderRequest();
@@ -292,7 +361,7 @@ namespace BitKiwiForm
                 }
                 else
                 {
-                    var rangePriceMin = input.InitalPrice * (1 + decimal.Parse(input.RangePriceMin) / 100);
+                    var rangePriceMin = input.InitalPrice * (1 + decimal.Parse(input.GainPointMin) / 100);
                     //var rangePriceMax = holdPrice * (1 + decimal.Parse(TxtRangeMax.Text.Trim()));
                     var lossPrice = input.InitalPrice * (1 - decimal.Parse(input.LossPoint) / 100);
                     input.SellPrice = txPrice;
@@ -481,40 +550,10 @@ namespace BitKiwiForm
         }
         private void timer_Tick(object sender, EventArgs e)
         {
-            //Task.Run(() =>
-            //{
-            //    SetAmount(this.GetAmountUSDT().ToString(), (this.GetAmountUSDT() - this.init_usdt).ToString());
-            //});
+
+
         }
     }
-    /*
-    public class ViewModel
-    {
-        public string TargetCurrency { get; set; }
-        public string BaseCurrency { get; set; }
-        public decimal LossPoint { get; set; }
-        public decimal Hold { get; set; }
-        public DateTime InitalTime { get; set; }
-        public decimal InitalPrice { get; set; }
-        public decimal RangePriceMin { get; set; }
-        public decimal RangePriceMax { get; set; }
-        public decimal RangeTimeMin { get; set; }
-        public decimal SellPrice { get; set; }
-        public decimal Gain { get; set; }
-        public InputStatus Status { get; set; }
-
-        public static ViewModel From(Input input)
-        {
-            return new ViewModel()
-            {
-                TargetCurrency = input.TargetCurrency,
-                BaseCurrency = input.BaseCurrency,
-                Gain = (input.SellPrice - input.InitalPrice) / input.InitalPrice * 100,
-            };
-        }
-    }
-    */
-
     public class Input
     {
         public string BaseCurrency { get; set; }
@@ -526,8 +565,8 @@ namespace BitKiwiForm
         public DateTime InitalTime { get; set; }
         //public string RangeTimeMax { get; set; }
         public string LossPoint { get; set; }
-        public string RangePriceMax { get; set; }
-        public string RangePriceMin { get; set; }
+        public string GainPointMax { get; set; }
+        public string GainPointMin { get; set; }
         public string RangeTimeMin { get; set; }
         public decimal SellPrice { get; set; }
         public InputStatus Status { get; set; }
@@ -537,16 +576,11 @@ namespace BitKiwiForm
         private string _Precision;
         public string Precision
         {
-            get
-            {
-
-                return string.IsNullOrEmpty(this._Precision) ? "2" : this._Precision;
-            }
-            set
-            {
-                this._Precision = value;
-            }
+            get => string.IsNullOrEmpty(this._Precision) ? "2" : this._Precision;
+            set => this._Precision = value;
         }
+
+        public InputSrc InputSrc { get; set; }
     }
 
     public class InputValidator : AbstractValidator<Input>
@@ -556,8 +590,8 @@ namespace BitKiwiForm
             RuleFor(i => i.BaseCurrency).NotNull().NotEmpty();
             RuleFor(i => i.Hold).Must(IsNumeric);
             RuleFor(i => i.LossPoint).Must(IsNumeric);
-            RuleFor(i => i.RangePriceMin).Must(IsNumeric);
-            RuleFor(i => i.RangePriceMax).Must(IsNumeric);
+            RuleFor(i => i.GainPointMin).Must(IsNumeric);
+            RuleFor(i => i.GainPointMax).Must(IsNumeric);
             //RuleFor(i => i.RangeTimeMax).Must(IsNumeric);
             RuleFor(i => i.RangeTimeMin).Must(IsNumeric);
             RuleFor(i => i.TargetCurrency).NotNull().NotEmpty();
